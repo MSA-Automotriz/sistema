@@ -98,10 +98,18 @@ class UsuarioController extends Controller
                             ->with('error', 'No puedes eliminar tu propio usuario');
         }
 
-        $usuario->roles()->detach();
-        $usuario->delete();
+        try {
+            $usuario->roles()->detach();
+            $usuario->delete();
 
-        return redirect()->route('admin.usuarios.usuarios.index')
-                        ->with('success', 'Usuario eliminado con éxito');
+            return redirect()->route('admin.usuarios.usuarios.index')
+                            ->with('success', 'Usuario eliminado con éxito');
+        } catch (\Illuminate\Database\QueryException $e) {
+            return redirect()->route('admin.usuarios.usuarios.index')
+                            ->with('error', 'No se puede eliminar este usuario porque tiene cotizaciones, ventas u otros registros asociados en el sistema.');
+        } catch (\Exception $e) {
+            return redirect()->route('admin.usuarios.usuarios.index')
+                            ->with('error', 'Error al eliminar el usuario: ' . $e->getMessage());
+        }
     }
 }
