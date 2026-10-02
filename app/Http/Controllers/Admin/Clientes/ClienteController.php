@@ -526,55 +526,11 @@ public function guardarParaMantenimiento(Request $request)
             'provincia' => $request->provincia ?? '',
             'distrito' => $request->distrito ?? '',
             'correo' => $request->correo,
+            'direccion' => $request->direccion ?? '',
+            'ocupacion' => $request->ocupacion ?? '',
+            'categoria_cliente_id' => $request->categoria_cliente_id ?? 1,
+            'canal_captacion_id' => $request->canal_captacion_id ?? 1,
         ];
-        
-        // Verificar existencia de columnas opcionales
-        try {
-            $tableName = (new Cliente)->getTable();
-            $columns = Schema::getColumnListing($tableName);
-            \Log::info("Columnas en tabla $tableName:", $columns);
-            
-            // Verificar campos opcionales
-            if (in_array('categoria_cliente_id', $columns)) {
-                $categoriaClienteId = null;
-                
-                try {
-                    $categoriaClienteId = DB::table('categoria_clientes')->first()->id ?? 1;
-                } catch (\Exception $e) {
-                    $categoriaClienteId = 1;
-                    \Log::warning("Error al obtener categoría de cliente: " . $e->getMessage());
-                }
-                
-                $clienteData['categoria_cliente_id'] = $request->categoria_cliente_id ?? $categoriaClienteId;
-                \Log::info("Campo 'categoria_cliente_id' añadido: {$clienteData['categoria_cliente_id']}");
-            }
-            
-            if (in_array('canal_captacion_id', $columns)) {
-                $canalCaptacionId = null;
-                
-                try {
-                    $canalCaptacionId = DB::table('canal_captacion')->first()->id ?? 1;
-                } catch (\Exception $e) {
-                    $canalCaptacionId = 1;
-                    \Log::warning("Error al obtener canal de captación: " . $e->getMessage());
-                }
-                
-                $clienteData['canal_captacion_id'] = $request->canal_captacion_id ?? $canalCaptacionId;
-                \Log::info("Campo 'canal_captacion_id' añadido: {$clienteData['canal_captacion_id']}");
-            }
-            
-            if (in_array('direccion', $columns)) {
-                $clienteData['direccion'] = $request->direccion ?? '';
-                \Log::info("Campo 'direccion' añadido: {$clienteData['direccion']}");
-            }
-            
-            if (in_array('ocupacion', $columns)) {
-                $clienteData['ocupacion'] = $request->ocupacion ?? '';
-                \Log::info("Campo 'ocupacion' añadido: {$clienteData['ocupacion']}");
-            }
-        } catch (\Exception $e) {
-            \Log::warning("Error al verificar columnas: " . $e->getMessage());
-        }
         
         // Establecer campos según tipo de cliente
         if ($tipoClienteNormalizado === 'natural') {

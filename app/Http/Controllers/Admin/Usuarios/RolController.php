@@ -62,6 +62,12 @@ class RolController extends Controller
             'permissions.*' => 'exists:permissions,id',
         ]);
 
+        $systemRoles = ['admin', 'cliente', 'vendedor', 'almacenero', 'tecnico', 'compras'];
+        if (in_array(strtolower($rol->name), $systemRoles) && strtolower($request->name) !== strtolower($rol->name)) {
+            return redirect()->route('admin.usuarios.roles.edit', $rol)
+                            ->with('error', 'No se puede cambiar el nombre identificador de un rol base del sistema');
+        }
+
         $rol->update($request->only(['name', 'description']));
 
         // Sincronizar permisos
@@ -77,10 +83,11 @@ class RolController extends Controller
 
     public function destroy(Role $rol)
     {
-        // Verificar que no sea un rol importante
-        if (in_array($rol->name, ['admin', 'cliente'])) {
+        // Verificar que no sea un rol importante del sistema
+        $systemRoles = ['admin', 'cliente', 'vendedor', 'almacenero', 'tecnico', 'compras'];
+        if (in_array(strtolower($rol->name), $systemRoles)) {
             return redirect()->route('admin.usuarios.roles.index')
-                            ->with('error', 'No se puede eliminar este rol del sistema');
+                            ->with('error', 'No se puede eliminar un rol base del sistema');
         }
 
         $rol->delete();

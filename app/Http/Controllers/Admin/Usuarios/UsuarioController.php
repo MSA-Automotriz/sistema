@@ -78,6 +78,22 @@ class UsuarioController extends Controller
             $data['password'] = Hash::make($request->password);
         }
 
+        // Evitar despojar de rol admin al único administrador del sistema
+        $adminRole = Role::where('name', 'admin')->first();
+        if ($adminRole && $usuario->hasRole('admin')) {
+            $submittedRoles = $request->roles ?? [];
+            if (!in_array($adminRole->id, $submittedRoles)) {
+                $adminCount = User::whereHas('roles', function($q) {
+                    $q->where('name', 'admin');
+                })->count();
+
+                if ($adminCount <= 1) {
+                    return redirect()->route('admin.usuarios.usuarios.edit', $usuario)
+                                    ->with('error', 'No se puede quitar el rol de administrador al único administrador existente en el sistema.');
+                }
+            }
+        }
+
         $usuario->update($data);
 
         if ($request->has('roles')) {
@@ -96,6 +112,18 @@ class UsuarioController extends Controller
         if ($usuario->id === auth()->id()) {
             return redirect()->route('admin.usuarios.usuarios.index')
                             ->with('error', 'No puedes eliminar tu propio usuario');
+        }
+
+        // Evitar eliminar al único administrador del sistema
+        if ($usuario->hasRole('admin')) {
+            $adminCount = User::whereHas('roles', function($q) {
+                $q->where('name', 'admin');
+            })->count();
+
+            if ($adminCount <= 1) {
+                return redirect()->route('admin.usuarios.usuarios.index')
+                                ->with('error', 'No se puede eliminar al único administrador del sistema.');
+            }
         }
 
         try {

@@ -230,9 +230,11 @@ body.modal-open {
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                <button type="button" class="btn btn-dark" onclick="imprimirTicket()">
+                    <i class="fas fa-receipt mr-1"></i> Ticket 80mm
+                </button>
                 <button type="button" class="btn btn-primary" onclick="imprimirVenta()">
-                    <i class="fas fa-print mr-1"></i>
-                    Imprimir
+                    <i class="fas fa-file-invoice mr-1"></i> Factura A4
                 </button>
             </div>
         </div>
@@ -408,7 +410,10 @@ function renderizarVentas(ventas) {
                                     <i class="fas fa-money-bill-wave"></i>
                                 </button>` : ''
                             }
-                            <button type="button" class="btn btn-outline-info" title="Imprimir" onclick="imprimirVentaDirecta(${venta.id})">
+                            <button type="button" class="btn btn-outline-dark" title="Ticket Térmico (80mm)" onclick="imprimirTicketDirecto(${venta.id})">
+                                <i class="fas fa-receipt"></i>
+                            </button>
+                            <button type="button" class="btn btn-outline-info" title="Imprimir Factura A4" onclick="imprimirVentaDirecta(${venta.id})">
                                 <i class="fas fa-print"></i>
                             </button>
                         </div>
@@ -530,6 +535,17 @@ function imprimirVenta(ventaId = null) {
 function imprimirVentaDirecta(ventaId) {
     const baseUrl = '{{ route("admin.ventas.pos.ventas") }}';
     window.open(`${baseUrl}/imprimir/${ventaId}`, '_blank');
+}
+
+function imprimirTicket(ventaId = null) {
+    const id = ventaId || ventaActual;
+    if (id) {
+        window.open(`{{ url('admin/ventas/pos/ventas') }}/${id}/ticket`, '_blank');
+    }
+}
+
+function imprimirTicketDirecto(ventaId) {
+    window.open(`{{ url('admin/ventas/pos/ventas') }}/${ventaId}/ticket`, '_blank');
 }
 
 function exportarVentas() {

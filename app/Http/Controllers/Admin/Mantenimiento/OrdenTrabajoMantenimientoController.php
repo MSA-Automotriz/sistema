@@ -495,4 +495,25 @@ class OrdenTrabajoMantenimientoController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Generar PDF de la Orden de Trabajo de Taller
+     */
+    public function generarPDF(OrdenTrabajoMantenimiento $orden)
+    {
+        $orden->load([
+            'vehiculo',
+            'cliente.telefonos',
+            'tecnico',
+            'detallesRepuestos.parte',
+            'detallesServicios.servicio',
+            'factura'
+        ]);
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('admin.mantenimiento.ordenes.pdf', compact('orden'))
+            ->setPaper('a4', 'portrait');
+
+        $codigo = $orden->codigo_orden ?? ('OT-' . str_pad($orden->id, 6, '0', STR_PAD_LEFT));
+        return $pdf->stream('Orden_Trabajo_' . $codigo . '.pdf');
+    }
 }

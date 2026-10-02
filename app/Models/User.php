@@ -54,6 +54,9 @@ class User extends Authenticatable
      */
     public function hasRole($role)
     {
+        if ($this->relationLoaded('roles')) {
+            return $this->roles->contains('name', $role);
+        }
         return $this->roles()->where('name', $role)->exists();
     }
 
@@ -105,6 +108,22 @@ class User extends Authenticatable
         // Un usuario con rol admin tiene acceso a todo
         if ($this->hasRole('admin')) {
             return true;
+        }
+
+        // Si los roles están cargados en memoria
+        if ($this->relationLoaded('roles')) {
+            foreach ($this->roles as $userRole) {
+                if ($userRole->relationLoaded('permissions')) {
+                    if ($userRole->permissions->contains('name', $permissionName)) {
+                        return true;
+                    }
+                } else {
+                    if ($userRole->hasPermission($permissionName)) {
+                        return true;
+                    }
+                }
+            }
+            return false;
         }
 
         // Verificar si el permiso existe en alguno de sus roles

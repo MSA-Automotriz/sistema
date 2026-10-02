@@ -21,13 +21,19 @@ class CheckAdminAccess
         $user = auth()->user();
 
         // Si el usuario no tiene ningún rol asignado, denegar acceso
-        if ($user->roles()->count() === 0) {
+        $hasAnyRole = $user->relationLoaded('roles') ? $user->roles->isNotEmpty() : $user->roles()->exists();
+        if (!$hasAnyRole) {
             abort(403, 'No tiene un rol asignado');
         }
 
         // Si el usuario solo tiene rol 'cliente', denegar acceso al admin
-        if ($user->hasRole('cliente') && !$user->roles()->where('name', '!=', 'cliente')->exists()) {
-            abort(403, 'Los clientes no pueden acceder al panel de administración');
+        if ($user->hasRole('cliente')) {
+            $otherRoles = $user->relationLoaded('roles') 
+                ? $user->roles->where('name', '!=', 'cliente')->isNotEmpty() 
+                : $user->roles()->where('name', '!=', 'cliente')->exists();
+            if (!$otherRoles) {
+                abort(403, 'Los clientes no pueden acceder al panel de administración');
+            }
         }
 
         return $next($request);

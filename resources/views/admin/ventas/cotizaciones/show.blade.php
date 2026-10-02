@@ -28,10 +28,13 @@
             </div>
             <div class="d-flex flex-wrap gap-2 mt-3 mt-lg-0">
                 <a href="{{ route('admin.ventas.cotizaciones.index') }}" class="btn bg-white bg-opacity-10 text-white rounded-pill px-4 py-2 fw-bold border border-white border-opacity-25 backdrop-blur transition hover:scale-105">
-                    <i class="fas fa-arrow-left me-2"></i> Volver a Cotizaciones
+                    <i class="fas fa-arrow-left me-2"></i> Volver
+                </a>
+                <a href="{{ route('admin.ventas.cotizaciones.pdf', $cotizacion) }}" target="_blank" class="btn btn-primary rounded-pill px-4 py-2 fw-bold shadow-sm transition hover:scale-105">
+                    <i class="fas fa-print me-2"></i> Imprimir PDF
                 </a>
                 <a href="{{ route('admin.ventas.cotizaciones.edit', $cotizacion) }}" class="btn bg-white text-dark rounded-pill px-4 py-2 fw-bold shadow-sm transition hover:scale-105" style="border: 1px solid rgba(255,255,255,0.8);">
-                    <i class="fas fa-edit me-2 text-primary"></i> Editar Cotización
+                    <i class="fas fa-edit me-2 text-primary"></i> Editar
                 </a>
             </div>
         </div>

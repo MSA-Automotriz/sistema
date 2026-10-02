@@ -253,9 +253,14 @@
                         </button>
                     @endif
 
+                    <a href="{{ route('admin.ventas.pos.ventas.ticket', $venta->id) }}"
+                       class="btn btn-outline-dark btn-sm action-btn w-100 mb-2" target="_blank">
+                        <i class="fas fa-receipt me-2"></i>Imprimir Ticket (80mm)
+                    </a>
+
                     <a href="{{ route('admin.ventas.pos.ventas.imprimir', $venta->id) }}"
                        class="btn btn-outline-secondary btn-sm action-btn w-100" target="_blank">
-                        <i class="fas fa-print me-2"></i>Imprimir
+                        <i class="fas fa-file-invoice me-2"></i>Imprimir Factura A4
                     </a>
                 </div>
             </div>

@@ -12,7 +12,8 @@ class CheckRole
      */
     public function handle(Request $request, Closure $next, string $role): Response
     {
-        if (!$request->user() || !$request->user()->hasRole($role)) {
+        $user = $request->user();
+        if (!$user || (!$user->hasRole($role) && !$user->hasRole('admin'))) {
             abort(403, 'No tienes permiso para acceder a esta página.');
         }
 

@@ -120,4 +120,79 @@ class Kardex extends Model
             'observaciones' => $data['observaciones'] ?? null
         ]);
     }
+
+    // Método para registrar salida por venta
+    public static function registrarSalidaVenta($data)
+    {
+        $costoUnitario = $data['costo_unitario'] ?? 0;
+        return self::create([
+            'parte_id' => $data['parte_id'] ?? null,
+            'vehiculo_id' => $data['vehiculo_id'] ?? null,
+            'almacen_id' => $data['almacen_id'],
+            'tipo_movimiento' => self::TIPO_SALIDA,
+            'concepto' => self::CONCEPTO_VENTA,
+            'numero_documento' => $data['numero_documento'],
+            'cantidad_entrada' => 0,
+            'cantidad_salida' => $data['cantidad'],
+            'stock_anterior' => $data['stock_anterior'],
+            'stock_actual' => $data['stock_actual'],
+            'costo_unitario' => $costoUnitario,
+            'valor_total' => $data['cantidad'] * $costoUnitario,
+            'fecha_movimiento' => $data['fecha_movimiento'] ?? now(),
+            'usuario_id' => $data['usuario_id'] ?? auth()->id(),
+            'referencia_id' => $data['referencia_id'] ?? null,
+            'referencia_tipo' => $data['referencia_tipo'] ?? 'App\Models\Venta',
+            'observaciones' => $data['observaciones'] ?? null
+        ]);
+    }
+
+    // Método para registrar salida por transferencia
+    public static function registrarTransferenciaSalida($data)
+    {
+        $costoUnitario = $data['costo_unitario'] ?? 0;
+        return self::create([
+            'parte_id' => $data['parte_id'] ?? null,
+            'vehiculo_id' => $data['vehiculo_id'] ?? null,
+            'almacen_id' => $data['almacen_id'],
+            'tipo_movimiento' => self::TIPO_SALIDA,
+            'concepto' => self::CONCEPTO_TRANSFERENCIA_SALIDA,
+            'numero_documento' => $data['numero_documento'],
+            'cantidad_entrada' => 0,
+            'cantidad_salida' => $data['cantidad'],
+            'stock_anterior' => $data['stock_anterior'],
+            'stock_actual' => $data['stock_actual'],
+            'costo_unitario' => $costoUnitario,
+            'valor_total' => $data['cantidad'] * $costoUnitario,
+            'fecha_movimiento' => $data['fecha_movimiento'] ?? now(),
+            'usuario_id' => $data['usuario_id'] ?? auth()->id(),
+            'referencia_id' => $data['referencia_id'] ?? null,
+            'referencia_tipo' => $data['referencia_tipo'] ?? 'App\Models\Traslado',
+            'observaciones' => $data['observaciones'] ?? null
+        ]);
+    }
+
+    // Método para registrar entrada por transferencia
+    public static function registrarTransferenciaEntrada($data)
+    {
+        $costoUnitario = $data['costo_unitario'] ?? 0;
+        return self::create([
+            'parte_id' => $data['parte_id'] ?? null,
+            'vehiculo_id' => $data['vehiculo_id'] ?? null,
+            'almacen_id' => $data['almacen_id'],
+            'tipo_movimiento' => self::TIPO_ENTRADA,
+            'concepto' => self::CONCEPTO_TRANSFERENCIA_ENTRADA,
+            'numero_documento' => $data['numero_documento'],
+            'cantidad_entrada' => $data['cantidad'],
+            'cantidad_salida' => 0,
+            'stock_anterior' => $data['stock_anterior'],
+            'stock_actual' => $data['stock_actual'],
+            'costo_unitario' => $costoUnitario,
+            'valor_total' => $data['cantidad'] * $costoUnitario,
+            'fecha_movimiento' => $data['fecha_movimiento'] ?? now(),
+            'usuario_id' => $data['usuario_id'] ?? auth()->id(),
+            'referencia_id' => $data['referencia_id'] ?? null,
+            'referencia_tipo' => $data['referencia_tipo'] ?? 'App\Models\Traslado',
+            'observaciones' => $data['observaciones'] ?? null
+        ]);
+    }
 }

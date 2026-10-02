@@ -7,6 +7,10 @@ use App\Models\TrasladoItem;
 use App\Models\Almacen;
 use App\Models\Parte;
 use App\Models\Vehiculo;
+use App\Models\Inventario;
+use App\Models\Kardex;
+use App\Models\Movimiento;
+use App\Models\TipoMovimiento;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
@@ -54,20 +58,18 @@ class TrasladoController extends Controller
         $itemId = $request->input('item_id');
         
         if ($tipo === 'parte') {
-            // Consultar stock de partes
             $stock = DB::table('inventarios')
                 ->where('almacen_id', $almacenId)
                 ->where('parte_id', $itemId)
-                ->value('cantidad') ?? 0;
+                ->value('stock_disponible') ?? 0;
         } else {
-            // Consultar stock de vehículos
             $stock = DB::table('inventarios')
                 ->where('almacen_id', $almacenId)
                 ->where('vehiculo_id', $itemId)
-                ->value('cantidad') ?? 0;
+                ->value('stock_disponible') ?? 0;
         }
         
-        return response()->json(['stock' => $stock]);
+        return response()->json(['stock' => (float)$stock]);
     }
 
     /**
@@ -92,24 +94,28 @@ class TrasladoController extends Controller
             ]);
             $itemId = $request->parte_id;
             $columnName = 'parte_id';
+            $parte = Parte::find($itemId);
+            $costoUnitario = $parte->precio_compra ?? 0;
         } else {
             $request->validate([
                 'vehiculo_id' => 'required|exists:catalogos,id',
             ]);
             $itemId = $request->vehiculo_id;
             $columnName = 'vehiculo_id';
+            $costoUnitario = 0;
         }
         
-        // Verificar stock disponible
-        $stockDisponible = DB::table('inventarios')
-            ->where('almacen_id', $request->almacen_origen_id)
+        // Verificar stock disponible en almacén origen
+        $invOrigen = Inventario::where('almacen_id', $request->almacen_origen_id)
             ->where($columnName, $itemId)
-            ->value('cantidad') ?? 0;
+            ->first();
+            
+        $stockDisponible = $invOrigen ? (float)$invOrigen->stock_disponible : 0;
             
         if ($stockDisponible < $request->cantidad) {
             return redirect()->back()
                 ->withInput()
-                ->withErrors(['cantidad' => 'La cantidad a trasladar no puede ser mayor al stock disponible.']);
+                ->withErrors(['cantidad' => 'La cantidad a trasladar no puede ser mayor al stock disponible (' . $stockDisponible . ').']);
         }
         
         DB::beginTransaction();
@@ -135,36 +141,63 @@ class TrasladoController extends Controller
             ]);
             
             // Disminuir stock en almacén origen
-            DB::table('inventarios')
-                ->where('almacen_id', $request->almacen_origen_id)
-                ->where($columnName, $itemId)
-                ->decrement('cantidad', $request->cantidad);
+            $stockAntOrigen = $invOrigen->stock_disponible;
+            $invOrigen->decrement('stock_disponible', $request->cantidad);
+            $stockActOrigen = $invOrigen->fresh()->stock_disponible;
                 
             // Aumentar stock en almacén destino
-            $existeEnDestino = DB::table('inventarios')
-                ->where('almacen_id', $request->almacen_destino_id)
-                ->where($columnName, $itemId)
-                ->exists();
-                
-            if ($existeEnDestino) {
-                DB::table('inventarios')
-                    ->where('almacen_id', $request->almacen_destino_id)
-                    ->where($columnName, $itemId)
-                    ->increment('cantidad', $request->cantidad);
-            } else {
-                DB::table('inventarios')->insert([
+            $invDestino = Inventario::firstOrCreate(
+                [
                     'almacen_id' => $request->almacen_destino_id,
-                    $columnName => $itemId,
-                    'cantidad' => $request->cantidad,
-                    'created_at' => now(),
-                    'updated_at' => now()
-                ]);
-            }
+                    $columnName => $itemId
+                ],
+                [
+                    'stock_disponible' => 0,
+                    'stock_reservado' => 0
+                ]
+            );
+            $stockAntDestino = $invDestino->stock_disponible;
+            $invDestino->increment('stock_disponible', $request->cantidad);
+            $stockActDestino = $invDestino->fresh()->stock_disponible;
+            
+            // Registrar asiento contable en Kardex para salida origen
+            Kardex::registrarTransferenciaSalida([
+                'parte_id' => $request->tipo_item === 'parte' ? $itemId : null,
+                'vehiculo_id' => $request->tipo_item === 'vehiculo' ? $itemId : null,
+                'almacen_id' => $request->almacen_origen_id,
+                'cantidad' => $request->cantidad,
+                'stock_anterior' => $stockAntOrigen,
+                'stock_actual' => $stockActOrigen,
+                'costo_unitario' => $costoUnitario,
+                'numero_documento' => 'TR-' . str_pad($traslado->id, 6, '0', STR_PAD_LEFT),
+                'fecha_movimiento' => now(),
+                'usuario_id' => Auth::id(),
+                'referencia_id' => $traslado->id,
+                'referencia_tipo' => 'App\Models\Traslado',
+                'observaciones' => "Traslado a almacén destino: {$request->motivo}"
+            ]);
+
+            // Registrar asiento contable en Kardex para entrada destino
+            Kardex::registrarTransferenciaEntrada([
+                'parte_id' => $request->tipo_item === 'parte' ? $itemId : null,
+                'vehiculo_id' => $request->tipo_item === 'vehiculo' ? $itemId : null,
+                'almacen_id' => $request->almacen_destino_id,
+                'cantidad' => $request->cantidad,
+                'stock_anterior' => $stockAntDestino,
+                'stock_actual' => $stockActDestino,
+                'costo_unitario' => $costoUnitario,
+                'numero_documento' => 'TR-' . str_pad($traslado->id, 6, '0', STR_PAD_LEFT),
+                'fecha_movimiento' => now(),
+                'usuario_id' => Auth::id(),
+                'referencia_id' => $traslado->id,
+                'referencia_tipo' => 'App\Models\Traslado',
+                'observaciones' => "Recepción por traslado desde almacén origen: {$request->motivo}"
+            ]);
             
             DB::commit();
             
             return redirect()->route('admin.inventario.traslados.index')
-                ->with('success', 'Traslado realizado con éxito.');
+                ->with('success', 'Traslado realizado y registrado en Kardex con éxito.');
                 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -211,16 +244,14 @@ class TrasladoController extends Controller
                     $itemId = $item->tipo_item === 'parte' ? $item->parte_id : $item->vehiculo_id;
                     
                     // Devolver stock al almacén origen
-                    DB::table('inventarios')
-                        ->where('almacen_id', $traslado->almacen_origen_id)
+                    Inventario::where('almacen_id', $traslado->almacen_origen_id)
                         ->where($columnName, $itemId)
-                        ->increment('cantidad', $item->cantidad);
+                        ->increment('stock_disponible', $item->cantidad);
                         
                     // Reducir stock del almacén destino
-                    DB::table('inventarios')
-                        ->where('almacen_id', $traslado->almacen_destino_id)
+                    Inventario::where('almacen_id', $traslado->almacen_destino_id)
                         ->where($columnName, $itemId)
-                        ->decrement('cantidad', $item->cantidad);
+                        ->decrement('stock_disponible', $item->cantidad);
                 }
             }
             
@@ -262,16 +293,14 @@ class TrasladoController extends Controller
                 $itemId = $item->tipo_item === 'parte' ? $item->parte_id : $item->vehiculo_id;
                 
                 // Devolver stock al almacén origen
-                DB::table('inventarios')
-                    ->where('almacen_id', $traslado->almacen_origen_id)
+                Inventario::where('almacen_id', $traslado->almacen_origen_id)
                     ->where($columnName, $itemId)
-                    ->increment('cantidad', $item->cantidad);
+                    ->increment('stock_disponible', $item->cantidad);
                     
                 // Reducir stock del almacén destino
-                DB::table('inventarios')
-                    ->where('almacen_id', $traslado->almacen_destino_id)
+                Inventario::where('almacen_id', $traslado->almacen_destino_id)
                     ->where($columnName, $itemId)
-                    ->decrement('cantidad', $item->cantidad);
+                    ->decrement('stock_disponible', $item->cantidad);
             }
             
             // Eliminar el traslado (los items se eliminarán en cascada)

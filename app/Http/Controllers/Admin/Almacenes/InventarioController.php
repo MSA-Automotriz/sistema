@@ -102,7 +102,9 @@ class InventarioController extends Controller
         // Agregar estas líneas para definir todas las variables que la vista necesita
         $partes = Parte::select('id', 'nombre', 'codigo')->orderBy('nombre')->get();
         $almacenes = Almacen::select('id', 'nombre')->orderBy('nombre')->get();
-        $vehiculos = Vehiculo::with(['marca', 'modelo', 'version', 'anioModelo'])->get(); 
+        $vehiculos = Vehiculo::select('id', 'marca_id', 'modelo_id', 'version_id', 'anio_modelo_id')
+            ->with(['marca:id,nombre', 'modelo:id,nombre', 'version:id,nombre', 'anioModelo:id,nombre'])
+            ->get(); 
 
         return view('admin.inventario.kardex.index', [
             'inventario' => $inventario->load([

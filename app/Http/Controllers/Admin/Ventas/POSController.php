@@ -12,6 +12,7 @@ use App\Models\EstadoCotizacion;
 use App\Models\Almacen;
 use App\Models\Inventario;
 use App\Models\Movimiento;
+use App\Models\Kardex;
 use App\Models\TipoMovimiento;
 use App\Models\HistorialCotizacion;
 use App\Models\Telefono;
@@ -449,138 +450,83 @@ public function index()
                 ]);
             }
             
-            // Verificar qué columnas existen
-            $columnasPartes = Schema::getColumnListing('partes');
-            $tieneInventarios = Schema::hasTable('inventarios');
-            $columnasInventarios = $tieneInventarios ? Schema::getColumnListing('inventarios') : [];
-            $tieneUnidades = Schema::hasTable('unidades');
-            $tieneCategorias = Schema::hasTable('categorias_partes');
-            $tieneAlmacenes = Schema::hasTable('almacenes');
+            // Construir SELECT directo
+            $selectFields = [
+                'partes.id',
+                'partes.codigo',
+                'partes.nombre',
+                'partes.precio_venta',
+                'partes.moneda_venta',
+                'partes.marca',
+                'partes.codigo_oem',
+                'partes.imagen',
+                'partes.categoria_parte_id',
+                'unidades.nombre as unidad_nombre',
+                'categorias_partes.nombre as categoria_nombre'
+            ];
             
-            // Construir SELECT dinámico
-            $selectFields = ['partes.id'];
+            // Construir consulta base
+            $partesQuery = DB::table('partes')
+                ->select($selectFields)
+                ->leftJoin('unidades', 'partes.unidad_id', '=', 'unidades.id')
+                ->leftJoin('categorias_partes', 'partes.categoria_parte_id', '=', 'categorias_partes.id');
             
-            foreach (['codigo', 'nombre', 'precio_venta', 'moneda_venta', 'marca', 'codigo_oem', 'imagen', 'categoria_parte_id'] as $campo) {
-                if (in_array($campo, $columnasPartes)) {
-                    $selectFields[] = "partes.$campo";
-                }
-            }
-            
-            // Construir consulta
-            $partesQuery = DB::table('partes')->select($selectFields);
-            
-            // Joins opcionales
-            if ($tieneUnidades && in_array('unidad_id', $columnasPartes)) {
-                $partesQuery->leftJoin('unidades', 'partes.unidad_id', '=', 'unidades.id')
-                            ->addSelect('unidades.nombre as unidad_nombre');
-            }
-            
-            if ($tieneCategorias && in_array('categoria_parte_id', $columnasPartes)) {
-                $partesQuery->leftJoin('categorias_partes', 'partes.categoria_parte_id', '=', 'categorias_partes.id')
-                            ->addSelect('categorias_partes.nombre as categoria_nombre');
-            }
-            
-            // Join con inventarios (modificado para todos los almacenes)
-            if ($tieneInventarios) {
-                if ($almacenId) {
-                    // Almacén específico
-                    $partesQuery->leftJoin('inventarios', function($join) use ($almacenId) {
-                        $join->on('partes.id', '=', 'inventarios.parte_id')
-                             ->where('inventarios.almacen_id', '=', $almacenId);
-                    });
-                    
-                    if (in_array('stock_disponible', $columnasInventarios)) {
-                        $partesQuery->addSelect('inventarios.stock_disponible');
-                    }
-                    if (in_array('stock_real', $columnasInventarios)) {
-                        $partesQuery->addSelect('inventarios.stock_real');
-                    }
-                } else {
-                    // Todos los almacenes
-                    $partesQuery->leftJoin('inventarios', 'partes.id', '=', 'inventarios.parte_id');
-                    
-                    if (in_array('stock_disponible', $columnasInventarios)) {
-                        $partesQuery->addSelect(DB::raw('COALESCE(SUM(inventarios.stock_disponible), 0) as stock_disponible'));
-                    }
-                    if (in_array('stock_real', $columnasInventarios)) {
-                        $partesQuery->addSelect(DB::raw('COALESCE(SUM(inventarios.stock_real), 0) as stock_real'));
-                    }
-                    
-                    // Información de almacenes
-                    if ($tieneAlmacenes) {
-                        $partesQuery->leftJoin('almacenes', 'inventarios.almacen_id', '=', 'almacenes.id')
-                                   ->addSelect(DB::raw('GROUP_CONCAT(DISTINCT almacenes.nombre SEPARATOR ", ") as almacenes_nombres'));
-                    }
-                    
-                    // Agrupar
-                    $partesQuery->groupBy(array_merge($selectFields, $tieneUnidades ? ['unidades.nombre'] : [], $tieneCategorias ? ['categorias_partes.nombre'] : []));
-                }
-            }
-            
-            // Construir WHERE de búsqueda dinámicamente
-            $partesQuery->where(function($q) use ($query, $columnasPartes) {
-                $searchTerm = '%' . $query . '%';
+            // Join con inventarios
+            if ($almacenId) {
+                // Almacén específico
+                $partesQuery->leftJoin('inventarios', function($join) use ($almacenId) {
+                    $join->on('partes.id', '=', 'inventarios.parte_id')
+                         ->where('inventarios.almacen_id', '=', $almacenId);
+                })
+                ->addSelect('inventarios.stock_disponible', 'inventarios.stock_real');
                 
-                // Buscar en nombre (siempre debería existir)
-                if (in_array('nombre', $columnasPartes)) {
-                    $q->where('partes.nombre', 'like', $searchTerm);
-                }
-                
-                // Buscar en código
-                if (in_array('codigo', $columnasPartes)) {
-                    $q->orWhere('partes.codigo', 'like', $searchTerm);
-                }
-                
-                // Buscar en marca
-                if (in_array('marca', $columnasPartes)) {
-                    $q->orWhere('partes.marca', 'like', $searchTerm);
-                }
-                
-                // Buscar en código OEM
-                if (in_array('codigo_oem', $columnasPartes)) {
-                    $q->orWhere('partes.codigo_oem', 'like', $searchTerm);
-                }
-            });
-            
-            // Filtros adicionales
-            if ($categoriaId && in_array('categoria_parte_id', $columnasPartes)) {
-                $partesQuery->where('partes.categoria_parte_id', $categoriaId);
-            }
-            
-            // Filtrar por stock
-            if (!$incluirSinStock && $tieneInventarios && in_array('stock_disponible', $columnasInventarios)) {
-                if ($almacenId) {
+                if (!$incluirSinStock) {
                     $partesQuery->where('inventarios.stock_disponible', '>', 0);
-                } else {
+                }
+            } else {
+                // Todos los almacenes
+                $partesQuery->leftJoin('inventarios', 'partes.id', '=', 'inventarios.parte_id')
+                    ->leftJoin('almacenes', 'inventarios.almacen_id', '=', 'almacenes.id')
+                    ->addSelect(
+                        DB::raw('COALESCE(SUM(inventarios.stock_disponible), 0) as stock_disponible'),
+                        DB::raw('COALESCE(SUM(inventarios.stock_real), 0) as stock_real'),
+                        DB::raw('GROUP_CONCAT(DISTINCT almacenes.nombre SEPARATOR ", ") as almacenes_nombres')
+                    )
+                    ->groupBy(
+                        'partes.id', 'partes.codigo', 'partes.nombre', 'partes.precio_venta',
+                        'partes.moneda_venta', 'partes.marca', 'partes.codigo_oem', 'partes.imagen',
+                        'partes.categoria_parte_id', 'unidades.nombre', 'categorias_partes.nombre'
+                    );
+                
+                if (!$incluirSinStock) {
                     $partesQuery->havingRaw('COALESCE(SUM(inventarios.stock_disponible), 0) > 0');
                 }
             }
             
-            // Ordenar por relevancia (solo si las columnas existen)
-            $orderCases = [];
-            if (in_array('codigo', $columnasPartes)) {
-                $orderCases[] = "WHEN partes.codigo = ? THEN 1";
-                $orderCases[] = "WHEN partes.codigo LIKE ? THEN 2";
-            }
-            if (in_array('nombre', $columnasPartes)) {
-                $orderCases[] = "WHEN partes.nombre LIKE ? THEN 3";
-            }
-            $orderCases[] = "ELSE 4";
+            // Filtro de búsqueda
+            $searchTerm = '%' . $query . '%';
+            $partesQuery->where(function($q) use ($searchTerm) {
+                $q->where('partes.nombre', 'like', $searchTerm)
+                  ->orWhere('partes.codigo', 'like', $searchTerm)
+                  ->orWhere('partes.marca', 'like', $searchTerm)
+                  ->orWhere('partes.codigo_oem', 'like', $searchTerm);
+            });
             
-            if (!empty($orderCases)) {
-                $orderSql = 'CASE ' . implode(' ', $orderCases) . ' END';
-                $orderParams = [];
-                
-                if (in_array('codigo', $columnasPartes)) {
-                    $orderParams[] = $query;
-                    $orderParams[] = $query . '%';
-                }
-                if (in_array('nombre', $columnasPartes)) {
-                    $orderParams[] = $query . '%';
-                }
-                
-                $partesQuery->orderByRaw($orderSql, $orderParams);
+            // Filtros adicionales
+            if ($categoriaId) {
+                $partesQuery->where('partes.categoria_parte_id', $categoriaId);
             }
+            
+            // Ordenar por relevancia
+            $partesQuery->orderByRaw(
+                "CASE 
+                    WHEN partes.codigo = ? THEN 1 
+                    WHEN partes.codigo LIKE ? THEN 2 
+                    WHEN partes.nombre LIKE ? THEN 3 
+                    ELSE 4 
+                END",
+                [$query, $query . '%', $query . '%']
+            );
             
             $partesQuery->orderBy('partes.nombre');
             $partes = $partesQuery->take(50)->get();
@@ -656,10 +602,7 @@ public function index()
                       ->orWhere('apellido_materno', 'like', $searchTerm)
                       ->orWhere('razon_social', 'like', $searchTerm);
                       
-                    // Solo buscar por correo si la columna existe
-                    if (Schema::hasColumn('clientes', 'correo')) {
-                        $q->orWhere('correo', 'like', $searchTerm);
-                    }
+                    $q->orWhere('correo', 'like', $searchTerm);
                 });
                 
                 // Ordenar por relevancia cuando hay búsqueda
@@ -698,9 +641,9 @@ public function index()
                     'tipo' => $cliente->tipo_cliente ?? 'natural',
                     'tipo_documento' => $cliente->tipo_documento ?? 'DNI',
                     'telefono' => $cliente->telefonos->first() ? $cliente->telefonos->first()->numero : null,
-                    'correo' => Schema::hasColumn('clientes', 'correo') ? $cliente->correo : null,
-                    'direccion' => Schema::hasColumn('clientes', 'direccion') ? $cliente->direccion : null,
-                    'activo' => Schema::hasColumn('clientes', 'activo') ? ($cliente->activo ?? true) : true
+                    'correo' => $cliente->correo ?? null,
+                    'direccion' => $cliente->direccion ?? null,
+                    'activo' => $cliente->activo ?? true
                 ];
             });
             
@@ -1312,7 +1255,24 @@ public function procesarVenta(Request $request)
             
             Movimiento::create($datosMovimiento);
             
-            Log::info("Movimiento registrado correctamente", [
+            // Registrar asiento contable en Kardex
+            Kardex::registrarSalidaVenta([
+                'parte_id' => $parte->id,
+                'vehiculo_id' => null,
+                'almacen_id' => $almacenId,
+                'cantidad' => $cantidad,
+                'stock_anterior' => $stockAnterior,
+                'stock_actual' => $stockResultante,
+                'costo_unitario' => $parte->precio_compra ?? 0,
+                'numero_documento' => $venta->codigo,
+                'fecha_movimiento' => now(),
+                'usuario_id' => Auth::id(),
+                'referencia_id' => $venta->id,
+                'referencia_tipo' => 'App\Models\Venta',
+                'observaciones' => "Venta POS: {$venta->codigo}"
+            ]);
+            
+            Log::info("Movimiento y Kardex registrados correctamente", [
                 'parte' => $parte->nombre,
                 'stock_anterior' => $stockAnterior,
                 'stock_resultante' => $stockResultante
@@ -2098,7 +2058,30 @@ public function procesarVenta(Request $request)
             return redirect()->back()->with('error', 'Error al generar la impresión');
         }
     }
-public function anular(Request $request, $id)
+
+    /**
+     * Imprimir ticket térmico POS (80mm)
+     */
+    public function imprimirTicket($id)
+    {
+        try {
+            $venta = Venta::with([
+                'cliente', 
+                'usuario', 
+                'almacen', 
+                'detallesPOS.parte',
+                'pagos'
+            ])->findOrFail($id);
+            
+            return view('admin.ventas.pos.ticket', compact('venta'));
+            
+        } catch (\Exception $e) {
+            Log::error('Error al generar ticket POS: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Error al generar el ticket térmico: ' . $e->getMessage());
+        }
+    }
+
+    public function anular(Request $request, $id)
     {
         $request->validate([
             'comentario' => 'required|string|max:500'

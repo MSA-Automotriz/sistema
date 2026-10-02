@@ -452,6 +452,57 @@
         .dark .bg-light {
             background-color: #0f172a !important; /* Para fondos que emulan bg-light globalmente en dark */
         }
+
+        /* --- Optimizaciones de Responsividad Móvil y Tablets --- */
+        .table-responsive {
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: thin;
+        }
+
+        .table-responsive::-webkit-scrollbar {
+            height: 6px;
+        }
+
+        .table-responsive::-webkit-scrollbar-thumb {
+            background: rgba(148, 163, 184, 0.4);
+            border-radius: 4px;
+        }
+
+        @media (max-width: 767.98px) {
+            .dashboard-hero {
+                padding: 2rem 1rem !important;
+                margin: -1rem -1rem 1.5rem -1rem !important;
+                border-radius: 0 0 1rem 1rem !important;
+            }
+
+            .stat-card {
+                margin-bottom: 0.75rem;
+            }
+
+            .main-content {
+                padding: 1rem !important;
+                padding-top: 4rem !important; /* Spacing for mobile menu toggle button */
+            }
+
+            .modal-dialog {
+                margin: 0.5rem;
+                max-width: calc(100% - 1rem);
+            }
+
+            .table th, .table td {
+                white-space: nowrap;
+                font-size: 0.875rem;
+            }
+
+            .btn {
+                min-height: 38px;
+            }
+
+            .form-control, .form-select {
+                min-height: 42px;
+                font-size: 0.95rem;
+            }
+        }
     </style>
     
     @stack('styles')
@@ -522,6 +573,7 @@
                 <!-- Navigation Links -->
                 <div class="flex-grow-1 overflow-auto py-3 sidebar-scroll">
                     <ul class="nav flex-column px-2">
+                        @if(auth()->check() && auth()->user()->hasPermission('dashboard'))
                         <!-- Dashboard -->
                         <li class="nav-item">
                             <a href="{{ route('admin.dashboard') }}" 
@@ -538,7 +590,9 @@
                                 <span x-show="!collapsed || isMobile()">Dashboard</span>
                             </a>
                         </li>
+                        @endif
 
+                        @if(auth()->check() && auth()->user()->hasPermission('ventas'))
                         <!-- Ventas -->
                         <li class="nav-item">
                             <button @click="activeMenu = (activeMenu === 'ventas') ? null : 'ventas'" 
@@ -611,7 +665,9 @@
                                 </div>
                             </div>
                         </li>
+                        @endif
 
+                        @if(auth()->check() && auth()->user()->hasPermission('clientes'))
                         <!-- Clientes -->
                         <li class="nav-item">
                             <button @click="activeMenu = (activeMenu === 'clientes') ? null : 'clientes'" 
@@ -651,7 +707,9 @@
                                 </a>
                             </div>
                         </li>
+                        @endif
                         
+                        @if(auth()->check() && auth()->user()->hasPermission('compras'))
                         <!-- Compras -->
                         <li class="nav-item">
                             <button @click="activeMenu = (activeMenu === 'compras') ? null : 'compras'" 
@@ -739,7 +797,9 @@
                                 </div>
                             </div>
                         </li>
+                        @endif
 
+                        @if(auth()->check() && auth()->user()->hasPermission('almacenes'))
                         <!-- Productos/Servicios (antes Catálogos) -->
                         <li class="nav-item">
                             <button @click="activeMenu = (activeMenu === 'productos-servicios') ? null : 'productos-servicios'" 
@@ -831,7 +891,9 @@
                                 ]">Vehículos</a>
                             </div>
                         </li>
+                        @endif
 
+                        @if(auth()->check() && auth()->user()->hasPermission('inventario'))
                         <!-- Inventario -->
                         <li class="nav-item">
                             <button @click="activeMenu = (activeMenu === 'inventario') ? null : 'inventario'"
@@ -915,7 +977,9 @@
                                 </a>
                             </div>
                         </li>
+                        @endif
 
+                        @if(auth()->check() && auth()->user()->hasPermission('reportes'))
                         <!-- Reportes -->
                         <li class="nav-item">
                             <button @click="activeMenu = (activeMenu === 'reportes') ? null : 'reportes'"
@@ -973,7 +1037,9 @@
                                 </a>
                             </div>
                         </li>
+                        @endif
 
+                        @if(auth()->check() && auth()->user()->hasPermission('mantenimiento'))
                         <!-- Mantenimiento -->
                         <li class="nav-item">
                             <button @click="activeMenu = (activeMenu === 'mantenimiento') ? null : 'mantenimiento'"
@@ -1063,7 +1129,9 @@
                                 </div>
                             </div>
                         </li>
+                        @endif
 
+                        @if(auth()->check() && auth()->user()->hasPermission('almacenes'))
                         <!-- Almacenes -->
                         <li class="nav-item">
                             <a href="{{ route('admin.almacenes.index') }}"
@@ -1080,7 +1148,9 @@
                                 <span x-show="!collapsed || isMobile()">Almacenes</span>
                             </a>
                         </li>
+                        @endif
                         
+                        @if(auth()->check() && auth()->user()->hasPermission('configuracion'))
                         <!-- Establecimientos -->
                         <li class="nav-item">
                             <a href="{{ route('admin.establecimientos.index') }}"
@@ -1097,7 +1167,9 @@
                                 <span x-show="!collapsed || isMobile()">Establecimientos</span>
                             </a>
                         </li>
+                        @endif
                         
+                        @if(auth()->check() && auth()->user()->hasPermission('mantenimiento'))
                         <!-- Talleres -->
                         <li class="nav-item">
                             <a href="{{ route('admin.talleres.index') }}" 
@@ -1114,7 +1186,9 @@
                                 <span x-show="!collapsed || isMobile()">Talleres</span>
                             </a>
                         </li>
+                        @endif
                         
+                        @if(auth()->check() && auth()->user()->hasPermission('usuarios'))
                         <!-- Usuarios -->
                         <li class="nav-item">
                             <button @click="activeMenu = (activeMenu === 'usuarios') ? null : 'usuarios'"
@@ -1154,7 +1228,9 @@
                                 </a>
                             </div>
                         </li>
+                        @endif
 
+                        @if(auth()->check() && auth()->user()->hasPermission('configuracion'))
                         <!-- Subir archivos de la empresa -->
                         <li class="nav-item">
                             <a href="{{ route('admin.archivos-empresa.index') }}"
@@ -1170,6 +1246,7 @@
                                 </div>
                                 <span x-show="!collapsed || isMobile()">Archivos de la empresa</span> 
                             </a>
+                        </li>
                         
                         <!-- Configuración -->
                         <li class="nav-item">
@@ -1248,6 +1325,7 @@
                                 </a>
                             </div>
                         </li>
+                        @endif
                     </ul>
                 </div>
 

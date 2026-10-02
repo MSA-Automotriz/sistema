@@ -34,8 +34,19 @@
     </div>
 
     <!-- Estadísticas principales -->
+    @php
+        $hasStats = auth()->user()->hasPermission('usuarios') || 
+                    auth()->user()->hasPermission('ventas') || 
+                    auth()->user()->hasPermission('mantenimiento') || 
+                    auth()->user()->hasPermission('inventario') || 
+                    auth()->user()->hasPermission('almacenes') || 
+                    auth()->user()->hasPermission('compras');
+    @endphp
+
+    @if($hasStats)
     <div class="row g-4 mb-5">
         <!-- Usuarios -->
+        @if(auth()->user()->hasPermission('usuarios'))
         <div class="col-xl-3 col-md-6">
             <div class="card stat-card border-0 shadow-sm rounded-4 h-100">
                 <div class="card-body p-4">
@@ -55,8 +66,10 @@
                 </div>
             </div>
         </div>
+        @endif
         
         <!-- Ventas -->
+        @if(auth()->user()->hasPermission('ventas'))
         <div class="col-xl-3 col-md-6">
             <div class="card stat-card border-0 shadow-sm rounded-4 h-100">
                 <div class="card-body p-4">
@@ -76,8 +89,10 @@
                 </div>
             </div>
         </div>
+        @endif
         
         <!-- Órdenes -->
+        @if(auth()->user()->hasPermission('mantenimiento'))
         <div class="col-xl-3 col-md-6">
             <div class="card stat-card border-0 shadow-sm rounded-4 h-100">
                 <div class="card-body p-4">
@@ -97,8 +112,10 @@
                 </div>
             </div>
         </div>
+        @endif
         
         <!-- Stock -->
+        @if(auth()->user()->hasPermission('inventario') || auth()->user()->hasPermission('almacenes') || auth()->user()->hasPermission('compras'))
         <div class="col-xl-3 col-md-6">
             <div class="card stat-card border-0 shadow-sm rounded-4 h-100">
                 <div class="card-body p-4">
@@ -118,9 +135,21 @@
                 </div>
             </div>
         </div>
+        @endif
     </div>
+    @endif
 
     <!-- Acciones rápidas -->
+    @php
+        $hasQuickActions = auth()->user()->hasPermission('ventas') || 
+                           auth()->user()->hasPermission('mantenimiento') || 
+                           auth()->user()->hasPermission('clientes') || 
+                           auth()->user()->hasPermission('compras') || 
+                           auth()->user()->hasPermission('inventario') || 
+                           auth()->user()->hasPermission('almacenes');
+    @endphp
+
+    @if($hasQuickActions)
     <div class="row g-4 mb-5">
         <div class="col-12">
             <div class="card dashboard-card">
@@ -134,6 +163,7 @@
                 </div>
                 <div class="card-body p-4">
                     <div class="row g-3">
+                        @if(auth()->user()->hasPermission('ventas'))
                         <div class="col-lg-2 col-md-4 col-6">
                             <a href="{{ route('admin.ventas.cotizaciones.create') }}" class="quick-action-btn w-100 py-4 text-center">
                                 <i class="fas fa-file-invoice fs-3 d-block mb-3 text-primary"></i>
@@ -146,40 +176,64 @@
                                 <span class="fw-semibold small d-block">Punto de Venta</span>
                             </a>
                         </div>
+                        @endif
+
+                        @if(auth()->user()->hasPermission('mantenimiento'))
                         <div class="col-lg-2 col-md-4 col-6">
                             <a href="{{ route('admin.mantenimiento.citas.create') }}" class="quick-action-btn w-100 py-4 text-center">
                                 <i class="fas fa-calendar-plus fs-3 d-block mb-3 text-info"></i>
                                 <span class="fw-semibold small d-block">Nueva Cita</span>
                             </a>
                         </div>
+                        @endif
+
+                        @if(auth()->user()->hasPermission('clientes'))
                         <div class="col-lg-2 col-md-4 col-6">
                             <a href="{{ route('admin.clientes.create') }}" class="quick-action-btn w-100 py-4 text-center">
                                 <i class="fas fa-user-plus fs-3 d-block mb-3 text-warning"></i>
                                 <span class="fw-semibold small d-block">Alta Cliente</span>
                             </a>
                         </div>
+                        @endif
+
+                        @if(auth()->user()->hasPermission('compras'))
                         <div class="col-lg-2 col-md-4 col-6">
                             <a href="{{ route('admin.compras.ordenes.create') }}" class="quick-action-btn w-100 py-4 text-center">
                                 <i class="fas fa-shopping-cart fs-3 d-block mb-3 text-secondary"></i>
                                 <span class="fw-semibold small d-block">Comprar Stock</span>
                             </a>
                         </div>
+                        @endif
+
+                        @if(auth()->user()->hasPermission('inventario') || auth()->user()->hasPermission('almacenes'))
                         <div class="col-lg-2 col-md-4 col-6">
                             <a href="{{ route('admin.inventario.movimientos.create') }}" class="quick-action-btn w-100 py-4 text-center">
                                 <i class="fas fa-exchange-alt fs-3 d-block mb-3 text-dark"></i>
                                 <span class="fw-semibold small d-block">Movimiento</span>
                             </a>
                         </div>
+                        @endif
                     </div>
                 </div>
             </div>
         </div>
     </div>
+    @endif
 
     <!-- Actividad -->
+    @php
+        $hasActivity = !empty($actividadReciente);
+        $hasAlerts = auth()->user()->hasPermission('inventario') || 
+                     auth()->user()->hasPermission('almacenes') || 
+                     auth()->user()->hasPermission('compras') || 
+                     auth()->user()->hasPermission('mantenimiento');
+    @endphp
+
+    @if($hasActivity || $hasAlerts)
     <div class="row g-4">
         <!-- Actividad Reciente -->
-        <div class="col-lg-8">
+        @if($hasActivity)
+        <div class="{{ $hasAlerts ? 'col-lg-8' : 'col-12' }}">
             <div class="card dashboard-card h-100">
                 <div class="card-header border-bottom">
                     <div class="d-flex align-items-center justify-content-between">
@@ -194,6 +248,7 @@
                 </div>
                 <div class="card-body p-4 d-flex align-items-center">
                     <div class="row text-center w-100">
+                        @if(auth()->user()->hasPermission('ventas'))
                         <div class="col-md-3 col-6 mb-4 mb-md-0">
                             <div class="p-3 bg-light rounded-4">
                                 <i class="fas fa-file-contract text-primary mb-2 fs-4"></i>
@@ -208,6 +263,9 @@
                                 <div class="text-muted small fw-semibold text-uppercase mt-1">Ventas Exitosas</div>
                             </div>
                         </div>
+                        @endif
+
+                        @if(auth()->user()->hasPermission('mantenimiento'))
                         <div class="col-md-3 col-6">
                             <div class="p-3 bg-light rounded-4">
                                 <i class="fas fa-clipboard-check text-warning mb-2 fs-4"></i>
@@ -215,6 +273,9 @@
                                 <div class="text-muted small fw-semibold text-uppercase mt-1">Órdenes</div>
                             </div>
                         </div>
+                        @endif
+
+                        @if(auth()->user()->hasPermission('clientes') || auth()->user()->hasPermission('ventas'))
                         <div class="col-md-3 col-6">
                             <div class="p-3 bg-light rounded-4">
                                 <i class="fas fa-user-friends text-info mb-2 fs-4"></i>
@@ -222,13 +283,16 @@
                                 <div class="text-muted small fw-semibold text-uppercase mt-1">Nuevos Clientes</div>
                             </div>
                         </div>
+                        @endif
                     </div>
                 </div>
             </div>
         </div>
+        @endif
         
         <!-- Notificaciones y Avisos -->
-        <div class="col-lg-4">
+        @if($hasAlerts)
+        <div class="{{ $hasActivity ? 'col-lg-4' : 'col-12' }}">
             <div class="card dashboard-card h-100">
                 <div class="card-header border-bottom">
                     <div class="d-flex align-items-center">
@@ -239,6 +303,7 @@
                     </div>
                 </div>
                 <div class="card-body p-4">
+                    @if(auth()->user()->hasPermission('inventario') || auth()->user()->hasPermission('almacenes') || auth()->user()->hasPermission('compras'))
                     <div class="d-flex align-items-start p-3 bg-light border-start border-danger border-4 rounded mb-3 shadow-sm transition hover:shadow-md cursor-pointer">
                         <div class="flex-shrink-0 mt-1">
                             <i class="fas fa-exclamation-circle text-danger fs-5"></i>
@@ -248,7 +313,9 @@
                             <div class="small text-muted mt-1">{{ $stockCritico ?? 0 }} artículos necesitan reposición en el sistema de inventario.</div>
                         </div>
                     </div>
+                    @endif
                     
+                    @if(auth()->user()->hasPermission('mantenimiento'))
                     <div class="d-flex align-items-start p-3 bg-light border-start border-info border-4 rounded mb-3 shadow-sm transition hover:shadow-md cursor-pointer">
                         <div class="flex-shrink-0 mt-1">
                             <i class="fas fa-calendar-check text-info fs-5"></i>
@@ -268,8 +335,11 @@
                             <div class="small text-muted mt-1">{{ $ordenesPendientes ?? 0 }} orden(es) activas siendo trabajadas actualmente.</div>
                         </div>
                     </div>
+                    @endif
                 </div>
             </div>
         </div>
+        @endif
     </div>
+    @endif
 @endsection

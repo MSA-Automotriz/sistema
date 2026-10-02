@@ -1278,4 +1278,27 @@ public function generarRequerimiento(Request $request, Cotizacion $cotizacion)
         return redirect()->back()->with('error', 'Error al generar el requerimiento de compra: ' . $e->getMessage());
     }
 }
+
+    /**
+     * Generar PDF comercial de la cotización
+     */
+    public function generarPDF(Cotizacion $cotizacion)
+    {
+        $cotizacion->load([
+            'cliente.telefonos',
+            'almacen',
+            'usuario',
+            'estado',
+            'detalles.repuesto',
+            'detalles.servicio',
+            'detalles.vehiculo.marca',
+            'detalles.vehiculo.modelo',
+            'detalles.vehiculo.version'
+        ]);
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('admin.ventas.cotizaciones.pdf', compact('cotizacion'))
+            ->setPaper('a4', 'portrait');
+
+        return $pdf->stream('Cotizacion_' . $cotizacion->codigo . '.pdf');
+    }
 }

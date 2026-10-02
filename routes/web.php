@@ -80,19 +80,23 @@ Route::middleware(['auth', CheckAdminAccess::class])->group(function () {
     Route::get('/dashboard', function () {
         return redirect()->route('admin.dashboard');
     })->name('dashboard');
-    Route::get('/admin/dashboard', [DashboardController::class, 'index'])->name('admin.dashboard');
+    Route::get('/admin/dashboard', [DashboardController::class, 'index'])->name('admin.dashboard')->middleware('permission:dashboard');
     Route::get('/profile', [App\Http\Controllers\ProfileController::class, 'show'])->name('user.profile');
     Route::get('/profile/edit', [App\Http\Controllers\ProfileController::class, 'edit'])->name('profile.edit');
     Route::put('/profile', [App\Http\Controllers\ProfileController::class, 'update'])->name('profile.update');
     Route::post('/logout', [App\Http\Controllers\Auth\LoginController::class, 'logout'])->name('logout');
+    Route::get('/admin/refresh-csrf-token', function() {
+        return response()->json(['token' => csrf_token()]);
+    })->name('admin.refresh-csrf-token');
 
     # Módulo Ventas - Cotizaciones
-    Route::prefix('admin/ventas/cotizaciones')->name('admin.ventas.cotizaciones.')->group(function () {
+    Route::prefix('admin/ventas/cotizaciones')->name('admin.ventas.cotizaciones.')->middleware('permission:ventas')->group(function () {
         // Rutas existentes
         Route::get('/', [CotizacionController::class, 'index'])->name('index');
         Route::get('/create', [CotizacionController::class, 'create'])->name('create');
         Route::post('/', [CotizacionController::class, 'store'])->name('store')->middleware('validar.cotizacion.cliente');
         Route::get('/{cotizacion}', [CotizacionController::class, 'show'])->name('show');
+        Route::get('/{cotizacion}/pdf', [CotizacionController::class, 'generarPDF'])->name('pdf');
         Route::get('/{cotizacion}/edit', [CotizacionController::class, 'edit'])->name('edit');
         Route::put('/{cotizacion}', [CotizacionController::class, 'update'])->name('update');
         Route::delete('/{cotizacion}', [CotizacionController::class, 'destroy'])->name('destroy');
@@ -203,7 +207,7 @@ Route::middleware(['auth', CheckAdminAccess::class])->group(function () {
     });
 
     # Módulo Ventas - Dashboard/Vista General (resources\views\admin\ventas\index.blade.php)
-    Route::prefix('admin/ventas')->name('admin.ventas.')->group(function () {
+    Route::prefix('admin/ventas')->name('admin.ventas.')->middleware('permission:ventas')->group(function () {
         // Dashboard principal de ventas
         Route::get('/', [POSController::class, 'ventas'])->name('index');
         
@@ -220,7 +224,7 @@ Route::middleware(['auth', CheckAdminAccess::class])->group(function () {
     });
 
     # Módulo Ventas - Oportunidades
-    Route::prefix('admin/ventas/oportunidades')->name('admin.ventas.oportunidades.')->group(function () {
+    Route::prefix('admin/ventas/oportunidades')->name('admin.ventas.oportunidades.')->middleware('permission:ventas')->group(function () {
         Route::get('/', [OportunidadController::class, 'index'])->name('index');
         Route::get('/create', [OportunidadController::class, 'create'])->name('create');
         Route::post('/', [OportunidadController::class, 'store'])->name('store');
@@ -233,7 +237,7 @@ Route::middleware(['auth', CheckAdminAccess::class])->group(function () {
     });
 
     # Módulo Clientes
-    Route::prefix('admin/clientes')->name('admin.clientes.')->group(function () {
+    Route::prefix('admin/clientes')->name('admin.clientes.')->middleware('permission:clientes')->group(function () {
         Route::post('/validar-documento', [ClienteController::class, 'validarDocumento'])->name('validar-documento');
         Route::get('/provincias', [ClienteController::class, 'getProvinciasAjax'])->name('provincias');
         Route::get('/distritos', [ClienteController::class, 'getDistritosAjax'])->name('distritos');
@@ -253,7 +257,7 @@ Route::middleware(['auth', CheckAdminAccess::class])->group(function () {
     });
 
     # Módulo Configuración - Maestros
-    Route::prefix('admin/configuracion/maestros')->name('admin.configuracion.maestros.')->group(function () {
+    Route::prefix('admin/configuracion/maestros')->name('admin.configuracion.maestros.')->middleware('permission:configuracion')->group(function () {
         Route::prefix('fabricantes')->name('fabricantes.')->group(function () {
             Route::get('/', [FabricanteController::class, 'index'])->name('index');
             Route::get('/create', [FabricanteController::class, 'create'])->name('create');
@@ -289,7 +293,7 @@ Route::middleware(['auth', CheckAdminAccess::class])->group(function () {
     });
 
     # Módulo Partes - Categorías Partes
-    Route::prefix('admin/almacenes/partes/categorias')->name('admin.almacenes.partes.categorias.')->group(function () {
+    Route::prefix('admin/almacenes/partes/categorias')->name('admin.almacenes.partes.categorias.')->middleware('permission:almacenes')->group(function () {
         Route::get('/', [CategoriasPartesController::class, 'index'])->name('index');
         Route::get('/create', [CategoriasPartesController::class, 'create'])->name('create');
         Route::post('/', [CategoriasPartesController::class, 'store'])->name('store');
@@ -308,7 +312,7 @@ Route::middleware(['auth', CheckAdminAccess::class])->group(function () {
         // Route::delete('/{servicioTercerizado}', [ServiciosController::class, 'destroy'])->name('destroy');
     });
 
-    Route::prefix('/admin/productos-servicios/servicios/categorias')->name('admin.productos-servicios.servicios.categorias.')->group(function () {
+    Route::prefix('/admin/productos-servicios/servicios/categorias')->name('admin.productos-servicios.servicios.categorias.')->middleware('permission:almacenes')->group(function () {
         Route::get('/', [App\Http\Controllers\Admin\Almacenes\Categorias\CategoriasServiciosController::class, 'index'])->name('index');
         Route::get('/create', [App\Http\Controllers\Admin\Almacenes\Categorias\CategoriasServiciosController::class, 'create'])->name('create');
         Route::post('/', [App\Http\Controllers\Admin\Almacenes\Categorias\CategoriasServiciosController::class, 'store'])->name('store');
@@ -319,7 +323,7 @@ Route::middleware(['auth', CheckAdminAccess::class])->group(function () {
     
 
     # Módulo Configuración - Centros de Costos
-    Route::prefix('admin/configuracion/centros_costos')->name('admin.configuracion.centros_costos.')->group(function () {
+    Route::prefix('admin/configuracion/centros_costos')->name('admin.configuracion.centros_costos.')->middleware('permission:configuracion')->group(function () {
         Route::get('/', [CentroCostoController::class, 'index'])->name('index');
         Route::get('/create', [CentroCostoController::class, 'create'])->name('create');
         Route::post('/', [CentroCostoController::class, 'store'])->name('store');
@@ -329,7 +333,7 @@ Route::middleware(['auth', CheckAdminAccess::class])->group(function () {
     });
 
 // Rutas para el módulo de mantenimiento
-Route::middleware(['auth'])->prefix('admin/mantenimiento')->name('admin.mantenimiento.')->group(function () {
+Route::middleware(['auth', 'admin.access', 'permission:mantenimiento'])->prefix('admin/mantenimiento')->name('admin.mantenimiento.')->group(function () {
     // Dashboard
     Route::get('/', [App\Http\Controllers\Admin\Mantenimiento\DashboardController::class, 'index'])
         ->name('dashboard');
@@ -442,9 +446,11 @@ Route::middleware(['auth'])->prefix('admin/mantenimiento')->name('admin.mantenim
     // Ruta para imprimir orden/factura
     Route::get('ordenes/{orden}/imprimir', [App\Http\Controllers\Admin\Mantenimiento\OrdenTrabajoMantenimientoController::class, 'imprimirOrden'])
         ->name('ordenes.imprimir');
+    Route::get('ordenes/{orden}/pdf', [App\Http\Controllers\Admin\Mantenimiento\OrdenTrabajoMantenimientoController::class, 'generarPDF'])
+        ->name('ordenes.pdf');
 
 });
-Route::prefix('admin/mantenimiento/ordenes/seguimientos')->group(function () {
+Route::prefix('admin/mantenimiento/ordenes/seguimientos')->middleware(['auth', 'admin.access', 'permission:mantenimiento'])->group(function () {
     Route::get('{seguimiento}/sidebar', [App\Http\Controllers\Admin\Mantenimiento\SeguimientoOrdenTrabajoController::class, 'sidebar'])
         ->name('admin.mantenimiento.ordenes.seguimientos.sidebar');
     Route::get('{seguimiento}/comentarios', [App\Http\Controllers\Admin\Mantenimiento\SeguimientoOrdenTrabajoController::class, 'getComentarios'])
@@ -458,7 +464,7 @@ Route::prefix('admin/mantenimiento/ordenes/seguimientos')->group(function () {
 });
 
 // Rutas para Planes de Mantenimiento
-Route::middleware(['auth'])->prefix('admin/planes-mantenimiento')->name('admin.planes-mantenimiento.')->group(function () {
+Route::middleware(['auth', 'admin.access', 'permission:mantenimiento'])->prefix('admin/planes-mantenimiento')->name('admin.planes-mantenimiento.')->group(function () {
     Route::get('/', [PlanMantenimientoController::class, 'index'])->name('index');
     Route::get('/create', [PlanMantenimientoController::class, 'create'])->name('create');
     Route::post('/', [PlanMantenimientoController::class, 'store'])->name('store');
@@ -471,7 +477,7 @@ Route::middleware(['auth'])->prefix('admin/planes-mantenimiento')->name('admin.p
 });
 
 # Módulo Mantenimiento - Técnicos
-Route::middleware(['auth'])->prefix('admin/mantenimiento/tecnicos')->name('admin.mantenimiento.tecnicos.')->group(function () {
+Route::middleware(['auth', 'admin.access', 'permission:mantenimiento'])->prefix('admin/mantenimiento/tecnicos')->name('admin.mantenimiento.tecnicos.')->group(function () {
     Route::get('/', [App\Http\Controllers\Admin\Mantenimiento\TecnicoController::class, 'index'])->name('index');
     Route::get('/create', [App\Http\Controllers\Admin\Mantenimiento\TecnicoController::class, 'create'])->name('create');
     Route::post('/', [App\Http\Controllers\Admin\Mantenimiento\TecnicoController::class, 'store'])->name('store');
@@ -481,7 +487,7 @@ Route::middleware(['auth'])->prefix('admin/mantenimiento/tecnicos')->name('admin
     Route::delete('/{tecnico}', [App\Http\Controllers\Admin\Mantenimiento\TecnicoController::class, 'destroy'])->name('destroy');
 });
 
-    Route::prefix('admin/almacenes')->name('admin.almacenes.')->group(function () {
+    Route::prefix('admin/almacenes')->name('admin.almacenes.')->middleware('permission:almacenes')->group(function () {
         // Rutas de almacenes
         Route::get('/', [AlmacenController::class, 'index'])->name('index');
         Route::get('/create', [AlmacenController::class, 'create'])->name('create');
@@ -497,7 +503,7 @@ Route::middleware(['auth'])->prefix('admin/mantenimiento/tecnicos')->name('admin
         });
     });
     # Módulo Almacenes - Partes
-    Route::prefix('admin/almacenes/partes')->name('admin.almacenes.partes.')->group(function () {
+    Route::prefix('admin/almacenes/partes')->name('admin.almacenes.partes.')->middleware('permission:almacenes')->group(function () {
         Route::get('/', [ParteController::class, 'index'])->name('index');
         Route::get('/create', [ParteController::class, 'create'])->name('create');
         Route::post('/', [ParteController::class, 'store'])->name('store');
@@ -508,7 +514,7 @@ Route::middleware(['auth'])->prefix('admin/mantenimiento/tecnicos')->name('admin
     });
     
     # Servicios
-    Route::prefix('admin/productos-servicios/servicios')->name('admin.productos-servicios.servicios.')->group(function () {
+    Route::prefix('admin/productos-servicios/servicios')->name('admin.productos-servicios.servicios.')->middleware('permission:almacenes')->group(function () {
         Route::get('/', [ServicioController::class, 'index'])->name('index');
         Route::get('/create', [ServicioController::class, 'create'])->name('create');
         Route::post('/', [ServicioController::class, 'store'])->name('store');
@@ -518,7 +524,7 @@ Route::middleware(['auth'])->prefix('admin/mantenimiento/tecnicos')->name('admin
     });
 
     # Módulo Configuración - Unidades
-    Route::prefix('admin/configuracion/unidades')->name('admin.configuracion.unidades.')->group(function () {
+    Route::prefix('admin/configuracion/unidades')->name('admin.configuracion.unidades.')->middleware('permission:configuracion')->group(function () {
         Route::get('/', [UnidadController::class, 'index'])->name('index');
         Route::get('/create', [UnidadController::class, 'create'])->name('create');
         Route::post('/', [UnidadController::class, 'store'])->name('store');
@@ -528,7 +534,7 @@ Route::middleware(['auth'])->prefix('admin/mantenimiento/tecnicos')->name('admin
     });
 
     # Módulo Configuración - Reglas de Vencimiento de Cotizaciones
-    Route::prefix('admin/configuracion/reglas-vencimiento-cotizaciones')->name('admin.configuracion.reglas-vencimiento-cotizaciones.')->group(function () {
+    Route::prefix('admin/configuracion/reglas-vencimiento-cotizaciones')->name('admin.configuracion.reglas-vencimiento-cotizaciones.')->middleware('permission:configuracion')->group(function () {
         Route::get('/', [App\Http\Controllers\Admin\Configuracion\ReglaVencimientoCotizacionController::class, 'index'])->name('index');
         Route::get('/create', [App\Http\Controllers\Admin\Configuracion\ReglaVencimientoCotizacionController::class, 'create'])->name('create');
         Route::post('/', [App\Http\Controllers\Admin\Configuracion\ReglaVencimientoCotizacionController::class, 'store'])->name('store');
@@ -539,7 +545,7 @@ Route::middleware(['auth'])->prefix('admin/mantenimiento/tecnicos')->name('admin
     });
 
     # Módulo Configuración - Tipos de Cambio
-    Route::prefix('admin/configuracion/tipos-cambio')->name('admin.configuracion.tipos-cambio.')->group(function () {
+    Route::prefix('admin/configuracion/tipos-cambio')->name('admin.configuracion.tipos-cambio.')->middleware('permission:configuracion')->group(function () {
         Route::get('/', [App\Http\Controllers\Admin\TipoCambioController::class, 'index'])->name('index');
         Route::get('/create', [App\Http\Controllers\Admin\TipoCambioController::class, 'create'])->name('create');
         Route::post('/', [App\Http\Controllers\Admin\TipoCambioController::class, 'store'])->name('store');
@@ -555,7 +561,7 @@ Route::middleware(['auth'])->prefix('admin/mantenimiento/tecnicos')->name('admin
     Route::get('api/tipo-cambio', [App\Http\Controllers\Admin\TipoCambioController::class, 'api'])->name('api.tipo-cambio');
 
     # Módulo Almacenes - Servicios Tercerizados
-    Route::prefix('admin/almacenes/servicios-terceros')->name('admin.almacenes.servicios-terceros.')->group(function () {
+    Route::prefix('admin/almacenes/servicios-terceros')->name('admin.almacenes.servicios-terceros.')->middleware('permission:almacenes')->group(function () {
         Route::get('/', [ServicioController::class, 'index'])->name('index');
         Route::get('/create', [ServicioController::class, 'create'])->name('create');
         Route::post('/', [ServicioController::class, 'store'])->name('store');
@@ -565,23 +571,16 @@ Route::middleware(['auth'])->prefix('admin/mantenimiento/tecnicos')->name('admin
     });
 
     #Módulo Talleres
-    Route::prefix('admin')->name('admin.')->group(function () {
-        // Ruta para refrescar token CSRF
-        Route::get('/refresh-csrf-token', function() {
-            return response()->json(['token' => csrf_token()]);
-        })->middleware('auth');
-        
-        Route::prefix('talleres')->name('talleres.')->group(function () {
-            Route::get('/', [TallerController::class, 'index'])->name('index');
-            Route::get('/create', [TallerController::class, 'create'])->name('create');
-            Route::post('/', [TallerController::class, 'store'])->name('store');
-            Route::get('/{taller}/edit', [TallerController::class, 'edit'])->name('edit');
-            Route::put('/{taller}', [TallerController::class, 'update'])->name('update');
-            Route::delete('/{taller}', [TallerController::class, 'destroy'])->name('destroy');
-        });
+    Route::prefix('admin/talleres')->name('admin.talleres.')->middleware('permission:mantenimiento')->group(function () {
+        Route::get('/', [TallerController::class, 'index'])->name('index');
+        Route::get('/create', [TallerController::class, 'create'])->name('create');
+        Route::post('/', [TallerController::class, 'store'])->name('store');
+        Route::get('/{taller}/edit', [TallerController::class, 'edit'])->name('edit');
+        Route::put('/{taller}', [TallerController::class, 'update'])->name('update');
+        Route::delete('/{taller}', [TallerController::class, 'destroy'])->name('destroy');
     });
     # Módulo Vehículos
-    Route::prefix('admin/productos-servicios/vehiculos')->name('admin.productos-servicios.vehiculos.')->group(function () {
+    Route::prefix('admin/productos-servicios/vehiculos')->name('admin.productos-servicios.vehiculos.')->middleware('permission:almacenes')->group(function () {
         // Ruta que carga la vista pestanas.blade.php
         Route::get('/', [VehiculoController::class, 'vehiculosIndex'])->name('index');
     
@@ -638,7 +637,7 @@ Route::middleware(['auth'])->prefix('admin/mantenimiento/tecnicos')->name('admin
     });
 
     # Módulo Compras - Proveedores
-    Route::prefix('admin/compras/proveedores')->name('admin.compras.proveedores.')->group(function () {
+    Route::prefix('admin/compras/proveedores')->name('admin.compras.proveedores.')->middleware('permission:compras')->group(function () {
         // Rutas de proveedores
         Route::get('/', [ProveedorController::class, 'index'])->name('index');
         Route::get('/create', [ProveedorController::class, 'create'])->name('create');
@@ -666,7 +665,7 @@ Route::middleware(['auth'])->prefix('admin/mantenimiento/tecnicos')->name('admin
     });
 
     # Módulo Compras - Requerimientos y Órdenes
-    Route::prefix('admin/compras')->name('admin.compras.')->group(function () {
+    Route::prefix('admin/compras')->name('admin.compras.')->middleware('permission:compras')->group(function () {
         Route::resource('ordenes', OrdenCompraController::class);
         Route::post('ordenes/{orden}/aprobar', [OrdenCompraController::class, 'aprobar'])->name('ordenes.aprobar');
         Route::post('ordenes/{orden}/rechazar', [OrdenCompraController::class, 'rechazar'])->name('ordenes.rechazar');
@@ -682,7 +681,7 @@ Route::middleware(['auth'])->prefix('admin/mantenimiento/tecnicos')->name('admin
     });
 
     # Módulo Inventario - Traslados
-    Route::prefix('admin/inventario/traslados')->name('admin.inventario.traslados.')->group(function () {
+    Route::prefix('admin/inventario/traslados')->name('admin.inventario.traslados.')->middleware('permission:inventario')->group(function () {
         Route::get('/', [TrasladoController::class, 'index'])->name('index');
         Route::get('/create', [TrasladoController::class, 'create'])->name('create');
         Route::post('/', [TrasladoController::class, 'store'])->name('store');
@@ -692,7 +691,7 @@ Route::middleware(['auth'])->prefix('admin/mantenimiento/tecnicos')->name('admin
     });
 
     # Módulo Establecimientos
-    Route::prefix('admin/establecimientos')->name('admin.establecimientos.')->group(function () {
+    Route::prefix('admin/establecimientos')->name('admin.establecimientos.')->middleware('permission:configuracion')->group(function () {
         Route::get('/', [App\Http\Controllers\Admin\Establecimientos\EstablecimientoController::class, 'index'])->name('index');
         Route::get('/create', [App\Http\Controllers\Admin\Establecimientos\EstablecimientoController::class, 'create'])->name('create');
         Route::post('/', [App\Http\Controllers\Admin\Establecimientos\EstablecimientoController::class, 'store'])->name('store');
@@ -702,14 +701,14 @@ Route::middleware(['auth'])->prefix('admin/mantenimiento/tecnicos')->name('admin
     });
 
     #KARDEX
-    Route::prefix('admin/inventario/kardex')->name('admin.inventario.kardex.')->group(function () {
+    Route::prefix('admin/inventario/kardex')->name('admin.inventario.kardex.')->middleware('permission:inventario')->group(function () {
         Route::get('/', [KardexController::class, 'index'])->name('form');
         Route::get('/reporte', [KardexController::class, 'reporte'])->name('reporte');
         Route::get('/consulta', [KardexController::class, 'consulta'])->name('consulta');
         Route::get('/movimientos', [KardexController::class, 'movimientos'])->name('movimientos');
     });
     #INVENTARIOS
-    Route::prefix('admin/inventario')->name('admin.inventario.')->middleware(['auth'])->group(function () {
+    Route::prefix('admin/inventario')->name('admin.inventario.')->middleware(['auth', 'permission:inventario'])->group(function () {
     // Ruta raíz
         Route::get('/', [InventarioController::class, 'index'])->name('index');
     
@@ -759,7 +758,7 @@ Route::middleware(['auth'])->prefix('admin/mantenimiento/tecnicos')->name('admin
     });
 
     # Módulo Usuarios
-    Route::prefix('admin/usuarios')->name('admin.usuarios.')->group(function () {
+    Route::prefix('admin/usuarios')->name('admin.usuarios.')->middleware('permission:usuarios')->group(function () {
         Route::prefix('usuarios')->name('usuarios.')->group(function () {
             Route::get('/', [UsuarioController::class, 'index'])->name('index');
             Route::get('/create', [UsuarioController::class, 'create'])->name('create');
@@ -781,7 +780,7 @@ Route::middleware(['auth'])->prefix('admin/mantenimiento/tecnicos')->name('admin
     });
 
     # Módulo Reportes
-    Route::prefix('admin/reportes')->name('admin.reportes.')->group(function () {
+    Route::prefix('admin/reportes')->name('admin.reportes.')->middleware('permission:reportes')->group(function () {
         Route::get('/', [ReporteController::class, 'index'])->name('index');
         Route::get('/ventas', [ReporteController::class, 'ventas'])->name('ventas');
         Route::get('/compras', [ReporteController::class, 'compras'])->name('compras');
@@ -790,7 +789,7 @@ Route::middleware(['auth'])->prefix('admin/mantenimiento/tecnicos')->name('admin
     });
 
     # Módulo Ventas - Ventas
-    Route::prefix('admin/ventas/ventas')->name('admin.ventas.ventas.')->group(function () {
+    Route::prefix('admin/ventas/ventas')->name('admin.ventas.ventas.')->middleware('permission:ventas')->group(function () {
         // Route::get('/guias-entrega', [App\Http\Controllers\Admin\Ventas\GuiaEntregaController::class, 'index'])->name('guias-entrega.index');
         // Route::get('/guias-entrega/create', [App\Http\Controllers\Admin\Ventas\GuiaEntregaController::class, 'create'])->name('guias-entrega.create');
         // Route::post('/guias-entrega', [App\Http\Controllers\Admin\Ventas\GuiaEntregaController::class, 'store'])->name('guias-entrega.store');
@@ -822,7 +821,7 @@ Route::middleware(['auth'])->prefix('admin/mantenimiento/tecnicos')->name('admin
     });
 
     # Módulo Compras - Documentos
-    Route::prefix('admin/compras/documentos')->name('admin.compras.documentos.')->group(function () {
+    Route::prefix('admin/compras/documentos')->name('admin.compras.documentos.')->middleware('permission:compras')->group(function () {
         Route::get('/guias-entrega', [App\Http\Controllers\Admin\Compras\GuiaEntregaController::class, 'index'])->name('guias-entrega.index');
         Route::get('/guias-entrega/create', [App\Http\Controllers\Admin\Compras\GuiaEntregaController::class, 'create'])->name('guias-entrega.create');
         Route::post('/guias-entrega', [App\Http\Controllers\Admin\Compras\GuiaEntregaController::class, 'store'])->name('guias-entrega.store');
@@ -847,7 +846,7 @@ Route::middleware(['auth'])->prefix('admin/mantenimiento/tecnicos')->name('admin
     });
 
     # Módulo Archivos de la Empresa
-    Route::prefix('admin/archivos-empresa')->name('admin.archivos-empresa.')->group(function () {
+    Route::prefix('admin/archivos-empresa')->name('admin.archivos-empresa.')->middleware('permission:configuracion')->group(function () {
         Route::get('/', [App\Http\Controllers\Admin\ArchivoEmpresaController::class, 'index'])->name('index');
         Route::post('/', [App\Http\Controllers\Admin\ArchivoEmpresaController::class, 'store'])->name('store');
         Route::delete('/{nombre}', [App\Http\Controllers\Admin\ArchivoEmpresaController::class, 'destroy'])->name('destroy');
@@ -857,7 +856,7 @@ Route::middleware(['auth'])->prefix('admin/mantenimiento/tecnicos')->name('admin
 
 #POS
 
-Route::group(['middleware' => ['auth']], function () {
+Route::group(['middleware' => ['auth', 'admin.access', 'permission:ventas']], function () {
     Route::prefix('admin/ventas/pos')->name('admin.ventas.pos.')->group(function () {
         
         // Ruta principal del POS
@@ -871,6 +870,7 @@ Route::group(['middleware' => ['auth']], function () {
         Route::post('/ventas/{id}/marcar-lista-entrega', [\App\Http\Controllers\Admin\Ventas\POSController::class, 'marcarListaEntrega'])->name('ventas.marcar-lista-entrega');
         Route::post('/ventas/{id}/marcar-despachada', [\App\Http\Controllers\Admin\Ventas\POSController::class, 'marcarDespachada'])->name('ventas.marcar-despachada');
         Route::get('/ventas/{id}/imprimir', [\App\Http\Controllers\Admin\Ventas\POSController::class, 'imprimirVenta'])->name('ventas.imprimir');
+        Route::get('/ventas/{id}/ticket', [\App\Http\Controllers\Admin\Ventas\POSController::class, 'imprimirTicket'])->name('ventas.ticket');
         Route::get('/ventas/exportar/excel', [\App\Http\Controllers\Admin\Ventas\POSController::class, 'exportarVentas'])->name('ventas.exportar');
         // ========================================================
         
@@ -892,13 +892,13 @@ Route::group(['middleware' => ['auth']], function () {
         Route::get('/debug-estructura-completa', [\App\Http\Controllers\Admin\Ventas\POSController::class, 'debugEstructuraCompleta'])->name('debug-estructura-completa');
     });
 });
-Route::get('/admin/productos-servicios/vehiculos/import', [App\Http\Controllers\Admin\VehiculoImportController::class, 'showImportForm'])->name('admin.productos-servicios.vehiculos.import.form');
-Route::post('/admin/productos-servicios/vehiculos/import', [App\Http\Controllers\Admin\VehiculoImportController::class, 'import'])->name('admin.productos-servicios.vehiculos.import');
+Route::get('/admin/productos-servicios/vehiculos/import', [App\Http\Controllers\Admin\VehiculoImportController::class, 'showImportForm'])->name('admin.productos-servicios.vehiculos.import.form')->middleware(['auth', 'admin.access', 'permission:almacenes']);
+Route::post('/admin/productos-servicios/vehiculos/import', [App\Http\Controllers\Admin\VehiculoImportController::class, 'import'])->name('admin.productos-servicios.vehiculos.import')->middleware(['auth', 'admin.access', 'permission:almacenes']);
 
 
 #RECEPCIÓN PRODUCTOS
 // Rutas para recepción de órdenes de compra
-Route::prefix('admin/compras/recepcion')->name('admin.recepcion.')->group(function () {
+Route::prefix('admin/compras/recepcion')->name('admin.recepcion.')->middleware(['auth', 'admin.access', 'permission:compras'])->group(function () {
     Route::get('/', [\App\Http\Controllers\Admin\Compras\RecepcionController::class, 'index'])->name('index');
     Route::get('/{ordenCompra}/show', [\App\Http\Controllers\Admin\Compras\RecepcionController::class, 'show'])->name('show');
     Route::post('/{ordenCompra}', [\App\Http\Controllers\Admin\Compras\RecepcionController::class, 'store'])->name('store');
@@ -909,7 +909,7 @@ Route::prefix('admin/compras/recepcion')->name('admin.recepcion.')->group(functi
 });
 
 // Rutas para guías de entrega
-Route::prefix('admin/compras/guias')->name('admin.guias.')->group(function () {
+Route::prefix('admin/compras/guias')->name('admin.guias.')->middleware(['auth', 'admin.access', 'permission:compras'])->group(function () {
     Route::get('/', [\App\Http\Controllers\Admin\Compras\GuiaEntregaController::class, 'index'])->name('index');
     Route::get('/create', [\App\Http\Controllers\Admin\Compras\GuiaEntregaController::class, 'create'])->name('create');
     Route::post('/', [\App\Http\Controllers\Admin\Compras\GuiaEntregaController::class, 'store'])->name('store');
@@ -920,7 +920,7 @@ Route::prefix('admin/compras/guias')->name('admin.guias.')->group(function () {
 });
 
 // Rutas para vales de devolución
-Route::prefix('admin/compras/devoluciones')->name('admin.devoluciones.')->group(function () {
+Route::prefix('admin/compras/devoluciones')->name('admin.devoluciones.')->middleware(['auth', 'admin.access', 'permission:compras'])->group(function () {
     Route::get('/buscar-productos', [\App\Http\Controllers\Admin\Compras\DevolucionController::class, 'buscarProductos'])->name('buscar-productos');
     Route::get('/', [\App\Http\Controllers\Admin\Compras\DevolucionController::class, 'index'])->name('index');
     Route::get('/create', [\App\Http\Controllers\Admin\Compras\DevolucionController::class, 'create'])->name('create');

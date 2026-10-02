@@ -197,6 +197,9 @@
                         <i class="fas fa-save"></i>
                     </button>
                 </form>
+                <a href="{{ route('admin.mantenimiento.ordenes.pdf', $orden->id) }}" target="_blank" class="btn btn-outline-danger btn-sm ms-2 me-2" title="Descargar o Imprimir PDF">
+                    <i class="fas fa-file-pdf"></i> Imprimir PDF
+                </a>
                 <div class="btn">
                     <!-- Acciones según estado -->
                     @switch($orden->estado)
