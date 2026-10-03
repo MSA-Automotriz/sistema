@@ -10,7 +10,14 @@ class ArchivoEmpresaController extends Controller
 {
     public function index()
     {
+        if (!Storage::disk('public')->exists('archivos-empresa')) {
+            Storage::disk('public')->makeDirectory('archivos-empresa');
+        }
+
         $archivos = collect(Storage::disk('public')->files('archivos-empresa'))
+            ->filter(function ($path) {
+                return !str_starts_with(basename($path), '.');
+            })
             ->map(function ($path) {
                 $nombre = basename($path);
                 $extension = strtolower(pathinfo($path, PATHINFO_EXTENSION));
@@ -39,6 +46,10 @@ class ArchivoEmpresaController extends Controller
             'archivo.max'      => 'El archivo no debe pesar más de 20 MB.',
         ]);
 
+        if (!Storage::disk('public')->exists('archivos-empresa')) {
+            Storage::disk('public')->makeDirectory('archivos-empresa');
+        }
+
         $file = $request->file('archivo');
         $originalExt = $file->getClientOriginalExtension();
 
@@ -66,7 +77,12 @@ class ArchivoEmpresaController extends Controller
             $counter++;
         }
 
-        $file->storeAs('archivos-empresa', $filename, 'public');
+        $stored = $file->storeAs('archivos-empresa', $filename, 'public');
+
+        if (!$stored || !Storage::disk('public')->exists('archivos-empresa/' . $filename)) {
+            return redirect()->route('admin.archivos-empresa.index')
+                ->with('error', 'No se pudo guardar el archivo. Verifique los permisos de escritura en la carpeta storage del servidor VPS (chmod 775 / chown www-data).');
+        }
 
         return redirect()->route('admin.archivos-empresa.index')
             ->with('success', "Archivo '{$filename}' subido correctamente.");
