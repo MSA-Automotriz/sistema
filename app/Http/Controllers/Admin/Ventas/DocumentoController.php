@@ -12,6 +12,14 @@ use Illuminate\Support\Facades\Log; // Importar el facade Log
 class DocumentoController extends Controller
 {
     /**
+     * Redirige a la gestión de la cotización
+     */
+    public function index(Cotizacion $cotizacion)
+    {
+        return redirect()->route('admin.ventas.cotizaciones.gestionar', $cotizacion);
+    }
+
+    /**
      * Almacena un nuevo documento en la base de datos.
      *
      * @param  \Illuminate\Http\Request  $request

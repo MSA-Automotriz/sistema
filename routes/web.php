@@ -108,7 +108,7 @@ Route::middleware(['auth', CheckAdminAccess::class])->group(function () {
         // Ruta existente para gestión
         Route::get('/{cotizacion}/gestionar', [CotizacionController::class, 'gestionar'])->name('gestionar');
         Route::post('/{cotizacion}/seguimiento', [App\Http\Controllers\Admin\Ventas\SeguimientoCotizacionController::class, 'agregar'])->name('seguimiento.agregar');
-        Route::get('/{cotizacion}/seguimientos', [CotizacionController::class, 'getSeguimientos'])->name('seguimientos');
+        Route::get('/{cotizacion}/seguimientos', [App\Http\Controllers\Admin\Ventas\SeguimientoCotizacionController::class, 'getSeguimientos'])->name('seguimientos');
         Route::post('/{cotizacion}/actualizar-gestion', [CotizacionController::class, 'actualizarGestion'])->name('actualizar-gestion');
 
         // Rutas para el toggle de realizado
@@ -375,7 +375,8 @@ Route::middleware(['auth', 'admin.access', 'permission:mantenimiento'])->prefix(
     Route::resource('ordenes', App\Http\Controllers\Admin\Mantenimiento\OrdenTrabajoMantenimientoController::class)
     ->parameters([
         'ordenes' => 'orden'
-    ]);
+    ])
+    ->only(['index', 'show', 'edit', 'update']);
     #SEGUIMIENTOS ORDENES DE TRABAJO
     Route::post('ordenes/{orden}/seguimientos', [App\Http\Controllers\Admin\Mantenimiento\SeguimientoOrdenTrabajoController::class, 'store'])
         ->name('ordenes.seguimientos.store');
@@ -836,20 +837,22 @@ Route::middleware(['auth', 'admin.access', 'permission:mantenimiento'])->prefix(
         // Route::get('/vales-devolucion/{vale}/edit', [App\Http\Controllers\Admin\Compras\ValesDevolucionController::class, 'edit'])->name('vales-devolucion.edit');
         // Route::put('/vales-devolucion/{vale}', [App\Http\Controllers\Admin\Compras\ValesDevolucionController::class, 'update'])->name('vales-devolucion.update');
         // Route::delete('/vales-devolucion/{vale}', [App\Http\Controllers\Admin\Compras\ValesDevolucionController::class, 'destroy'])->name('vales-devolucion.destroy');
-        Route::get('/recepcion', [App\Http\Controllers\Admin\Compras\RecepcionController::class, 'index'])->name('recepcion.index');
-        Route::get('/recepcion/create', [App\Http\Controllers\Admin\Compras\RecepcionController::class, 'create'])->name('recepcion.create');
-        Route::post('/recepcion', [App\Http\Controllers\Admin\Compras\RecepcionController::class, 'store'])->name('recepcion.store');
-        Route::get('/recepcion/{recepcion}', [App\Http\Controllers\Admin\Compras\RecepcionController::class, 'show'])->name('recepcion.show');
-        Route::get('/recepcion/{recepcion}/edit', [App\Http\Controllers\Admin\Compras\RecepcionController::class, 'edit'])->name('recepcion.edit');
-        Route::put('/recepcion/{recepcion}', [App\Http\Controllers\Admin\Compras\RecepcionController::class, 'update'])->name('recepcion.update');
-        Route::delete('/recepcion/{recepcion}', [App\Http\Controllers\Admin\Compras\RecepcionController::class, 'destroy'])->name('recepcion.destroy');
+        // Route::get('/recepcion', [App\Http\Controllers\Admin\Compras\RecepcionController::class, 'index'])->name('recepcion.index');
+        // Route::get('/recepcion/create', [App\Http\Controllers\Admin\Compras\RecepcionController::class, 'create'])->name('recepcion.create');
+        // Route::post('/recepcion', [App\Http\Controllers\Admin\Compras\RecepcionController::class, 'store'])->name('recepcion.store');
+        // Route::get('/recepcion/{recepcion}', [App\Http\Controllers\Admin\Compras\RecepcionController::class, 'show'])->name('recepcion.show');
+        // Route::get('/recepcion/{recepcion}/edit', [App\Http\Controllers\Admin\Compras\RecepcionController::class, 'edit'])->name('recepcion.edit');
+        // Route::put('/recepcion/{recepcion}', [App\Http\Controllers\Admin\Compras\RecepcionController::class, 'update'])->name('recepcion.update');
+        // Route::delete('/recepcion/{recepcion}', [App\Http\Controllers\Admin\Compras\RecepcionController::class, 'destroy'])->name('recepcion.destroy');
     });
 
     # Módulo Archivos de la Empresa
     Route::prefix('admin/archivos-empresa')->name('admin.archivos-empresa.')->middleware('permission:configuracion')->group(function () {
         Route::get('/', [App\Http\Controllers\Admin\ArchivoEmpresaController::class, 'index'])->name('index');
         Route::post('/', [App\Http\Controllers\Admin\ArchivoEmpresaController::class, 'store'])->name('store');
-        Route::delete('/{nombre}', [App\Http\Controllers\Admin\ArchivoEmpresaController::class, 'destroy'])->name('destroy');
+        Route::get('/ver/{nombre}', [App\Http\Controllers\Admin\ArchivoEmpresaController::class, 'show'])->name('show')->where('nombre', '.*');
+        Route::get('/descargar/{nombre}', [App\Http\Controllers\Admin\ArchivoEmpresaController::class, 'download'])->name('download')->where('nombre', '.*');
+        Route::delete('/{nombre}', [App\Http\Controllers\Admin\ArchivoEmpresaController::class, 'destroy'])->name('destroy')->where('nombre', '.*');
     });
 });
 

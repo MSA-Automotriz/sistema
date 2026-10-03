@@ -66,6 +66,11 @@ class MovimientoController extends Controller
             ->with('success', 'Movimiento registrado correctamente');
     }
 
+    public function show(Movimiento $movimiento)
+    {
+        return $this->edit($movimiento);
+    }
+
     public function edit(Movimiento $movimiento)
     {
         $tiposMovimiento = TipoMovimiento::all();

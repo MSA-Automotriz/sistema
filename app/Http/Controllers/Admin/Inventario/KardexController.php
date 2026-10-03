@@ -22,8 +22,7 @@ class KardexController extends Controller
     
     public function reporte(Request $request)
     {
-        // Tu lógica actual para generar reportes
-        return view('admin.inventario.kardex.reporte', $data);
+        return $this->consulta($request);
     }
     
     public function consulta(Request $request)
@@ -84,5 +83,10 @@ class KardexController extends Controller
         }
 
         return view('admin.inventario.kardex.consulta', compact('movimientos', 'almacenes', 'inventarios'));
+    }
+
+    public function movimientos(Request $request)
+    {
+        return $this->consulta($request);
     }
 }

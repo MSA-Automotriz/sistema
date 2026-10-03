@@ -159,4 +159,20 @@ class OportunidadController extends Controller
             return response()->json(['error' => 'Error al agregar el seguimiento'], 500);
         }
     }
+
+    public function create()
+    {
+        return response()->json(['message' => 'Use modal or store endpoint']);
+    }
+
+    public function edit(Oportunidad $oportunidad)
+    {
+        return response()->json($oportunidad->load(['cliente', 'usuario']));
+    }
+
+    public function getSeguimientos(Oportunidad $oportunidad)
+    {
+        $seguimientos = $oportunidad->seguimientos()->with('usuario')->latest()->get();
+        return response()->json($seguimientos);
+    }
 }

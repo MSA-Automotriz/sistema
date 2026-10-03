@@ -16,6 +16,14 @@ use Illuminate\Support\Facades\Storage;
 class NotaPedidoController extends Controller
 {
     /**
+     * Redirige a la gestión de la cotización
+     */
+    public function index(Cotizacion $cotizacion)
+    {
+        return redirect()->route('admin.ventas.cotizaciones.gestionar', $cotizacion);
+    }
+
+    /**
      * Almacena un nuevo ítem en la nota de pedido.
      *
      * @param  \Illuminate\Http\Request  $request

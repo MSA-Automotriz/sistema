@@ -1239,7 +1239,7 @@
                                 darkMode ? 'text-light hover-dark' : 'text-dark hover-light',
                                 isActive('admin/archivos-empresa') ? 'menu-active' : ''
                             ]">
-                                <div class="menu-icon-container me-2" :class="isActive('admin/archivos-empresa/index.blade.php') ? 'icon-active' : ''">
+                                <div class="menu-icon-container me-2" :class="isActive('admin/archivos-empresa') ? 'icon-active' : ''">
                                     <svg xmlns="http://www.w3.org/2000/svg" style="height: 1.25rem; width: 1.25rem;" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 .1M9 19l3 3m0 0l3-3m-3 3V10" />
                                     </svg>

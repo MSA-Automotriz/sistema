@@ -2493,4 +2493,60 @@ private function obtenerHistorialPagos($ventaId)
             return $codigoFallback;
         });
     }
+
+    /**
+     * Buscar servicios para el POS
+     */
+    public function buscarServicios(Request $request)
+    {
+        try {
+            $query = trim($request->input('query', $request->input('term', '')));
+
+            if (empty($query)) {
+                return response()->json([]);
+            }
+
+            $servicios = \App\Models\Servicio::with('categoria')
+                ->where('nombre', 'LIKE', "%{$query}%")
+                ->limit(20)
+                ->get()
+                ->map(function ($servicio) {
+                    return [
+                        'id' => $servicio->id,
+                        'nombre' => $servicio->nombre,
+                        'precio' => $servicio->precio,
+                        'moneda' => $servicio->moneda,
+                        'categoria' => $servicio->categoria ? $servicio->categoria->nombre : null,
+                        'tipo' => 'servicio'
+                    ];
+                });
+
+            return response()->json($servicios);
+        } catch (\Exception $e) {
+            Log::error('Error al buscar servicios en POS: ' . $e->getMessage());
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Métodos de depuración del POS
+     */
+    public function debugBusqueda(Request $request)
+    {
+        return response()->json(['status' => 'ok', 'params' => $request->all()]);
+    }
+
+    public function debugClientesEstructura()
+    {
+        return response()->json(['columns' => Schema::getColumnListing('clientes')]);
+    }
+
+    public function debugEstructuraCompleta()
+    {
+        return response()->json([
+            'clientes' => Schema::getColumnListing('clientes'),
+            'partes'   => Schema::getColumnListing('partes'),
+            'ventas'   => Schema::getColumnListing('ventas')
+        ]);
+    }
 }

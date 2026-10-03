@@ -11,6 +11,14 @@ use Illuminate\Support\Facades\Storage;
 class PagoController extends Controller
 {
     /**
+     * Redirige a la gestión de la cotización
+     */
+    public function index(Cotizacion $cotizacion)
+    {
+        return redirect()->route('admin.ventas.cotizaciones.gestionar', $cotizacion);
+    }
+
+    /**
      * Almacena un nuevo pago en la base de datos.
      *
      * @param  \Illuminate\Http\Request  $request

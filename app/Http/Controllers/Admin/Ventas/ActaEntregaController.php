@@ -12,6 +12,14 @@ use Illuminate\Support\Facades\PDF;
 class ActaEntregaController extends Controller
 {
     /**
+     * Redirige a la gestión de la cotización
+     */
+    public function index(Cotizacion $cotizacion)
+    {
+        return redirect()->route('admin.ventas.cotizaciones.gestionar', $cotizacion);
+    }
+
+    /**
      * Almacena una nueva acta de entrega en la base de datos.
      *
      * @param  \Illuminate\Http\Request  $request
