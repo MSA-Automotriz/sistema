@@ -46,8 +46,10 @@ class ArchivoEmpresaController extends Controller
             'archivo.max'      => 'El archivo no debe pesar más de 20 MB.',
         ]);
 
-        if (!Storage::disk('public')->exists('archivos-empresa')) {
-            Storage::disk('public')->makeDirectory('archivos-empresa');
+        $targetDir = storage_path('app/public/archivos-empresa');
+        if (!file_exists($targetDir)) {
+            @mkdir($targetDir, 0777, true);
+            @chmod($targetDir, 0777);
         }
 
         $file = $request->file('archivo');
@@ -72,16 +74,31 @@ class ArchivoEmpresaController extends Controller
 
         // Evitar sobreescritura agregando numeración si ya existe
         $counter = 1;
-        while (Storage::disk('public')->exists('archivos-empresa/' . $filename)) {
+        while (Storage::disk('public')->exists('archivos-empresa/' . $filename) || file_exists($targetDir . '/' . $filename)) {
             $filename = $cleanName . " ({$counter})" . ($extension ? ('.' . $extension) : '');
             $counter++;
         }
 
-        $stored = $file->storeAs('archivos-empresa', $filename, 'public');
+        $saved = false;
+        try {
+            $saved = $file->storeAs('archivos-empresa', $filename, 'public');
+        } catch (\Throwable $e) {
+            $saved = false;
+        }
 
-        if (!$stored || !Storage::disk('public')->exists('archivos-empresa/' . $filename)) {
+        // Fallback usando move directo si storeAs fue bloqueado por permisos de disco
+        if (!$saved || !Storage::disk('public')->exists('archivos-empresa/' . $filename)) {
+            try {
+                $file->move($targetDir, $filename);
+                $saved = file_exists($targetDir . '/' . $filename);
+            } catch (\Throwable $e) {
+                $saved = false;
+            }
+        }
+
+        if (!$saved) {
             return redirect()->route('admin.archivos-empresa.index')
-                ->with('error', 'No se pudo guardar el archivo. Verifique los permisos de escritura en la carpeta storage del servidor VPS (chmod 775 / chown www-data).');
+                ->with('error', 'No se pudo guardar el archivo. Ejecute en su servidor VPS: sudo chmod -R 777 storage bootstrap/cache');
         }
 
         return redirect()->route('admin.archivos-empresa.index')
